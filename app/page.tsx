@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { RiRobot2Line, RiSignalTowerLine, RiDashboard3Line, RiLoader4Line, RiLogoutBoxRLine } from "@remixicon/react";
 import { getToken, setToken } from '@/lib/auth-store';
 
+import { TelemetryPanel } from './components/telemetry-panel';
+
 export default function Home() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ email: string; is_superuser: boolean } | null>(null);
@@ -100,35 +102,17 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <header className="relative overflow-hidden border-b border-zinc-800 bg-zinc-900/50 pt-16 pb-16">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(79,70,229,0.15),transparent)]" />
-        <div className="container mx-auto max-w-6xl px-6 relative">
-          <div className="flex flex-col items-center text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/50 px-3 py-1 text-sm font-medium text-zinc-400">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-              </span>
-              System Live
-            </div>
-            <h1 className="mt-8 text-5xl font-bold tracking-tight sm:text-7xl">
-              SPEDI <span className="text-indigo-500">Dashboard</span>
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-400">
-              Low-latency orchestration for autonomous devices. Monitor telemetry, manage sessions, and execute commands in real-time.
-            </p>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <button className="rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-all">
-                Launch Console
-              </button>
-              <button className="rounded-lg border border-zinc-700 bg-zinc-800/50 px-6 py-3 text-sm font-semibold text-zinc-300 hover:bg-zinc-800 transition-all">
-                View Documentation
-              </button>
-            </div>
+      {/* Observability Panel */}
+      <main className="container mx-auto max-w-6xl px-6 py-12">
+        <div className="mb-8 flex items-end justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-100">Observability</h1>
+            <p className="text-zinc-400 mt-1">Live telemetry streaming from active devices.</p>
           </div>
         </div>
-      </header>
+
+        <TelemetryPanel />
+      </main>
 
       {/* Feature Grid */}
       <main className="container mx-auto max-w-6xl px-6 py-24">

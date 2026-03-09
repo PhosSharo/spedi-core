@@ -22,7 +22,15 @@ export interface DeviceShadow {
         route: Array<{ lat: number; lng: number }> | null;
         [key: string]: any;
     };
-    reported: Record<string, any>;
+    reported: {
+        mode: string | null;
+        lat: number | null;
+        lng: number | null;
+        obstacle_left: number | null;
+        obstacle_right: number | null;
+        smart_move_active: boolean | null;
+        waypoint_index: number | null;
+    };
 }
 
 export interface DeviceState {
@@ -62,21 +70,32 @@ export class DeviceService {
                     steering: 0,
                     route: null,
                 },
-                reported: {},
+                reported: {
+                    mode: null,
+                    lat: null,
+                    lng: null,
+                    obstacle_left: null,
+                    obstacle_right: null,
+                    smart_move_active: null,
+                    waypoint_index: null,
+                },
             };
             this.shadows.set(deviceId, shadow);
         }
         return shadow;
     }
 
-    /**
-     * Merge incoming telemetry into reported state.
-     * Tolerant reader: shallow-merges all fields, never rejects unknown keys.
-     * Synchronous — zero DB, zero await.
-     */
     updateReported(deviceId: string, payload: Record<string, any>): void {
         const shadow = this.getOrCreateShadow(deviceId);
-        shadow.reported = { ...shadow.reported, ...payload };
+
+        // Tolerant reader: extract only known fields into typed properties, ignore the rest.
+        if (payload.mode !== undefined) shadow.reported.mode = String(payload.mode);
+        if (payload.lat !== undefined) shadow.reported.lat = Number(payload.lat);
+        if (payload.lng !== undefined) shadow.reported.lng = Number(payload.lng);
+        if (payload.obstacle_left !== undefined) shadow.reported.obstacle_left = Number(payload.obstacle_left);
+        if (payload.obstacle_right !== undefined) shadow.reported.obstacle_right = Number(payload.obstacle_right);
+        if (payload.smart_move_active !== undefined) shadow.reported.smart_move_active = Boolean(payload.smart_move_active);
+        if (payload.waypoint_index !== undefined) shadow.reported.waypoint_index = Number(payload.waypoint_index);
     }
 
     /**
@@ -97,9 +116,10 @@ export class DeviceService {
 
         // Compute delta: desired keys that differ from reported
         const delta: Record<string, any> = {};
+        const reportedRecord = shadow.reported as Record<string, any>;
         for (const key of Object.keys(shadow.desired)) {
             const desiredVal = shadow.desired[key];
-            const reportedVal = shadow.reported[key];
+            const reportedVal = reportedRecord[key];
             if (JSON.stringify(desiredVal) !== JSON.stringify(reportedVal)) {
                 delta[key] = { desired: desiredVal, reported: reportedVal };
             }

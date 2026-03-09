@@ -26,6 +26,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 import { configService } from './services/config.service';
 import { mqttService } from './services/mqtt.service';
 import { telemetryService } from './services/telemetry.service';
+import { sseService } from './services/sse.service';
+import realtimeRoutes from './routes/realtime';
 
 // Register plugins
 fastify.register(authPlugin);
@@ -35,6 +37,7 @@ fastify.register(healthRoutes);
 fastify.register(authRoutes);
 fastify.register(configRoutes);
 fastify.register(deviceRoutes);
+fastify.register(realtimeRoutes);
 
 const start = async () => {
     try {
@@ -42,6 +45,32 @@ const start = async () => {
         fastify.log.info('Validating Supabase connection...');
         await configService.load();
         fastify.log.info('Supabase connection verified and config loaded.');
+
+        // Wire SSE to Telemetry ingestion
+        telemetryService.onSSE((deviceId, payload) => {
+            sseService.broadcast({
+                type: 'telemetry',
+                deviceId,
+                payload
+            });
+        });
+
+        // Wire SSE to MQTT device connection events
+        mqttService.on('device_online', (deviceId) => {
+            sseService.broadcast({
+                type: 'device_online',
+                deviceId,
+                payload: { status: 'online', timestamp: new Date().toISOString() }
+            });
+        });
+
+        mqttService.on('device_offline', (deviceId) => {
+            sseService.broadcast({
+                type: 'device_offline',
+                deviceId,
+                payload: { status: 'offline', timestamp: new Date().toISOString() }
+            });
+        });
 
         // 2. MQTTClient connects (after config is available)
         fastify.log.info('Connecting to MQTT broker...');

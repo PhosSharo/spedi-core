@@ -74,6 +74,6 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
             return reply.status(404).send({ error: 'Device not found' });
         }
 
-        return deviceService.getStateStub(id);
+        return deviceService.getState(id);
     });
 }

@@ -24,6 +24,8 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 import { configService } from './services/config.service';
+import { mqttService } from './services/mqtt.service';
+import { telemetryService } from './services/telemetry.service';
 
 // Register plugins
 fastify.register(authPlugin);
@@ -36,11 +38,18 @@ fastify.register(deviceRoutes);
 
 const start = async () => {
     try {
-        // Fail-fast database check
+        // 1. ConfigService loads from DB
         fastify.log.info('Validating Supabase connection...');
         await configService.load();
         fastify.log.info('Supabase connection verified and config loaded.');
 
+        // 2. MQTTClient connects (after config is available)
+        fastify.log.info('Connecting to MQTT broker...');
+        mqttService.onMessage((topic, payload) => telemetryService.ingest(topic, payload));
+        await mqttService.connect();
+        fastify.log.info('MQTT broker connected.');
+
+        // 3. HTTP server starts accepting
         const port = Number(process.env.PORT) || 3000;
         await fastify.listen({ port, host: '0.0.0.0' });
         console.log(`Server listening on port ${port}`);
@@ -50,4 +59,16 @@ const start = async () => {
     }
 };
 
+// Graceful shutdown
+const shutdown = async (signal: string) => {
+    console.log(`\n${signal} received. Shutting down gracefully...`);
+    await mqttService.disconnect();
+    await fastify.close();
+    process.exit(0);
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
 start();
+

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { RiRobot2Line, RiLogoutBoxRLine, RiBookOpenLine, RiDashboard3Line } from "@remixicon/react";
+import { RiRobot2Line, RiLogoutBoxRLine, RiBookOpenLine, RiDashboard3Line, RiLineChartLine } from "@remixicon/react";
 import { SessionIndicator } from './session-indicator';
 
 interface NavbarProps {
@@ -31,6 +31,14 @@ export function Navbar({ user, onLogout }: NavbarProps) {
                     >
                         <RiDashboard3Line size={16} />
                         Dashboard
+                    </button>
+                    <button
+                        onClick={() => router.push('/telemetry')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${pathname === '/telemetry' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-400 hover:text-zinc-200'
+                            }`}
+                    >
+                        <RiLineChartLine size={16} />
+                        Telemetry
                     </button>
                     <button
                         onClick={() => router.push('/docs')}

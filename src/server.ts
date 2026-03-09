@@ -34,6 +34,7 @@ import realtimeRoutes from './routes/realtime';
 import controlRoutes from './routes/control';
 import sessionRoutes from './routes/session';
 import routeRoutes from './routes/routes';
+import telemetryRoutes from './routes/telemetry';
 import { routeService } from './services/route.service';
 
 // Register plugins
@@ -85,6 +86,7 @@ fastify.register(realtimeRoutes);
 fastify.register(controlRoutes);
 fastify.register(sessionRoutes);
 fastify.register(routeRoutes);
+fastify.register(telemetryRoutes);
 
 const start = async () => {
     try {

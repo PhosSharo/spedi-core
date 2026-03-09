@@ -158,3 +158,8 @@
 > Extracted `Navbar` from `app/page.tsx` into `app/components/navbar.tsx`.
 > Installed `@scalar/api-reference-react` and created `app/docs/page.tsx`.
 > Documents all backend endpoints in real-time from `/api/openapi.json`.
+
+31 | FEAT    | Telemetry history page and chart
+> Created `src/routes/telemetry.ts` — `GET /telemetry` with cursor-based pagination, date range filters.
+> Created `app/telemetry/page.tsx` — device selector, date pickers, canvas line chart (GPS + obstacles), data table, and "Load More" pagination.
+> Added "Telemetry" link to `Navbar`.

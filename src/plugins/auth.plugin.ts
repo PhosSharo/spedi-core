@@ -6,6 +6,10 @@ declare module 'fastify' {
     interface FastifyRequest {
         user?: AuthenticatedUser;
     }
+
+    interface FastifyInstance {
+        authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    }
 }
 
 export default fp(async function authPlugin(fastify: FastifyInstance) {

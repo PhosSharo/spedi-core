@@ -142,3 +142,9 @@
 > Backend: Wired `SessionService` to `sseService` for real-time broadcasting.
 > Frontend: Created `SessionIndicator` component in header to show active session status.
 > Frontend: Fetches initial status from `GET /api/session` and updates via SSE.
+
+28 | FEAT    | RouteService with dispatch and completion detection
+> Created `src/services/route.service.ts` — dispatch() validates 3 preconditions: ownership, no active conflict (DB), active session (memory).
+> onTelemetry() detects `autopilot_active` true→false transition to mark route as completed. Async DB write.
+> Created `src/routes/routes.ts` — CRUD + POST /:id/start (dispatch) + POST /:id/stop (abort).
+> Wired into telemetry pipeline via existing `telemetryService.onRoute()` hook.

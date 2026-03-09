@@ -33,6 +33,8 @@ import { sseService } from './services/sse.service';
 import realtimeRoutes from './routes/realtime';
 import controlRoutes from './routes/control';
 import sessionRoutes from './routes/session';
+import routeRoutes from './routes/routes';
+import { routeService } from './services/route.service';
 
 // Register plugins
 fastify.register(authPlugin);
@@ -46,6 +48,7 @@ fastify.register(deviceRoutes);
 fastify.register(realtimeRoutes);
 fastify.register(controlRoutes);
 fastify.register(sessionRoutes);
+fastify.register(routeRoutes);
 
 const start = async () => {
     try {
@@ -72,6 +75,11 @@ const start = async () => {
                 deviceId,
                 payload
             });
+        });
+
+        // Wire RouteService completion detection to telemetry pipeline
+        telemetryService.onRoute((deviceId, reported) => {
+            routeService.onTelemetry(deviceId, reported);
         });
 
         // Wire SSE to MQTT device connection events

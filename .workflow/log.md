@@ -1,0 +1,144 @@
+﻿# log.md â€” Build Log
+
+---
+
+01 | CHORE   | Initialized project with Fastify and TypeScript
+> Scaffolded base structure with services, routes, plugins, and db directories.
+> Set up tsconfig.json and verified Node.js 20 compatibility.
+
+02 | FEAT    | Implemented health check route
+> Added src/routes/health.ts and registered it in src/server.ts.
+> Server verified running on port 3000.
+
+03 | FEAT    | Applied Database Schema Migration
+> Created 6 core tables in Supabase public schema (users, devices, sessions, routes, telemetry, config).
+> Set up auth user insert trigger and pg_cron 30-day telemetry retention nightly job.
+> Configured .env with Supabase credentials.
+
+04 | DECIDE  | Telemetry table restricted to strict explicit schema (id, device_id, recorded_at, raw)
+> Dropped inferred hardware columns (lat, lng, mode, etc.) to fully embrace tolerant reader.
+> Prevent dual-representation and stale schemas; queries read directly from `raw` JSONB until fields permanently stabilize.
+
+05 | SEED    | Seeded global configuration table
+> Inserted default values for MQTT broker (host: mosquitto, port: 1883), device topics, and operational timeouts (2000ms).
+
+06 | FEAT    | Configured Mosquitto broker with ACL and Password Auth
+> Created mosquitto.conf, acl, and passwd files. 
+> Implemented Dockerfile builder to securely hash plaintext passwords at deploy time.
+> Confirmed 'device' and 'server' role boundaries.
+
+07 | FEAT    | Railway deployment and Fail-Fast DB Check
+> Created railway.json defining multi-service monorepo deployment (backend & mosquitto).
+> Implemented process.exit(1) health check in server.ts preventing silent DB connection failures.
+
+08 | FEAT    | Vercel Deployment & Shadcn UI Custom Preset
+> Created Dashboard placeholder landing page using Next.js 15, React 19, and Tailwind v4.
+> Setup multi-target build scripts in package.json to separate Vercel and Railway build outputs.
+> Fixed `tsconfig.json` path aliasing by relocating `src/components/` and `src/lib/` to project root.
+> Initialized standard Shadcn UI with the requested `aurkjEG` preset to overwrite default CSS variables.
+
+09 | FEAT    | Injected is_superuser custom claim into Supabase JWT
+> Created DB function and trigger to sync is_superuser to auth.users.raw_app_meta_data.
+> Enables privilege checks directly from JWT without a database round-trip on every backend request.
+
+10 | FEAT    | Implemented idempotent superuser seed script
+> Created src/db/seed-superuser.ts for automated superuser provisioning.
+> Added npm run db:seed:superuser script mapping.
+> Successfully seeded superspedi@spedi.io superuser.
+
+11 | FEAT    | Implemented core Auth endpoints (login, logout, me)
+> Created AuthService, authPlugin, and auth routes.
+> Verified is_superuser claim injection in JWT profiles.
+> Local JWT verification structured with SDK fallback.
+
+12 | FEAT    | Implemented Frontend Auth UI
+> added next.config.mjs rewrites to proxy /api to backend
+> created lib/auth-store.ts for in-memory ephemeral JWT storage
+> created /login page with custom dark-themed UI matching shadcn style
+> ported app/page.tsx to client component with active JWT validation
+
+13 | FEAT    | Migrated to Asymmetric JWT Verification (ES256)
+> Refactored AuthService to use JWKS (JSON Web Key Set) fetched from Supabase.
+> Removed dependency on symmetric JWT_SECRET in .env.
+> Fixed server crash by ensuring environment variables load before service initialization.
+> Optimized nodemon configuration to prevent recursive source scanning.
+
+14 | FEAT    | Implemented ConfigService and /config routes
+> Created ConfigService singleton for in-memory caching and DB persistence.
+> Integrated load() into server startup sequence for synchronous global config access.
+> Implemented superuser-protected GET and PUT /config endpoints.
+> Fixed Fastify TypeScript type declarations for request.user and authenticate decorator.
+
+15 | FEAT    | Implemented DeviceService and /devices routes
+> Created DeviceService singleton for device lifecycle management.
+> Implemented /devices list, /devices/:id detail, and superuser-only registration.
+> Added /devices/:id/state stub shadow endpoint for Phase 5 integration.
+
+16 | FEAT    | Implemented Dashboard Config Manager Page
+> Created /config route in Next.js App Router for configuration management.
+> Implemented superuser protection and automatic redirect for unauthorized users.
+> Built an interactive table allowing superusers to view and edit system configurations in real-time.
+> Added a secure 'Config' navigation link to the dashboard header.
+
+17 | FEAT    | Implemented MqttService wrapper with ConfigService integration
+> Created src/services/mqtt.service.ts — MQTT.js wrapper reading broker address and topics from ConfigService.
+> Exponential backoff reconnect (1s → 30s ceiling), re-subscribes all topics on reconnect.
+> Emits device_online / device_offline events. QoS 0 for joystick, QoS 1 for routes.
+> Integrated into server.ts startup sequence (config → MQTT → HTTP) with graceful shutdown.
+> Added MQTT_USERNAME / MQTT_PASSWORD to .env for broker authentication.
+
+18 | FEAT    | Upgraded DeviceService to real in-memory Device Shadow
+> Replaced stub with Map<deviceId, DeviceShadow> holding desired + reported states.
+> Added updateReported (tolerant reader, shallow merge), setDesired, getState (with delta), getReported.
+> All shadow reads are synchronous in-memory. Added async updateLastSeen (fire-and-forget).
+> Updated GET /devices/:id/state to return real shadow with computed delta.
+
+19 | FEAT    | Implemented TelemetryService ingestion pipeline
+> Created src/services/telemetry.service.ts — MQTT message → sync pipeline → async DB.
+> Pipeline: (1) DeviceService.updateReported, (2) RouteService hook, (3) SSE hook, (4) async raw insert, (5) async last_seen_at.
+> Tolerant reader: parses JSON, stores full raw payload verbatim, never rejects unknown fields.
+> Wired into server.ts via mqttService.onMessage → telemetryService.ingest.
+
+20 | FIX     | Refined DeviceService reported shadow extraction
+> Strongly typed the `reported` object in memory: mode, lat, lng, obstacle_left, obstacle_right, smart_move_active, waypoint_index.
+> Updated `updateReported` to extract only known fields into typed properties, discarding unknown fields from the in-memory shadow.
+> The DB (via TelemetryService) remains the tolerant reader storing the full raw payload.
+
+21 | FEAT    | Implemented GET /events SSE Endpoint
+> Created `src/services/sse.service.ts` to track open SSE client connections and broadcast events.
+> Added `GET /events` route protected by JWT authentication to start the persistent stream.
+> On connection, immediately flushes the current shadow state for all devices as an initial `telemetry` event.
+> Wired `telemetryService.onSSE` to broadcast live telemetry JSON.
+> Wired `mqttService` connection events to broadcast `device_online` and `device_offline`.
+> `session_change` event remains a stub pending SessionService implementation.
+
+22 | FEAT    | Built Live Telemetry Component for Dashboard
+> Created `TelemetryPanel` component connecting to `GET /events` via `EventSource`.
+> Handles auth token injection via query params and automatic reconnection with 5s exponential backoff.
+> Renders dynamic grid for GPS position, obstacle sonar sensors, device mode, and smart move status.
+> Replaced the static Hero section on `app/page.tsx` with the live Observability view.
+
+23 | FEAT    | DeviceService desired side + publish methods
+> Added `publishJoystick`, `publishRoute`, `resetDesired` to DeviceService.
+> MqttService injected via `init()` to avoid circular imports. All publish ops are fire-and-forget.
+
+24 | FEAT    | Implemented SessionService with in-memory mutex and grace period
+> Created `src/services/session.service.ts` — in-memory session map as source of truth.
+> One session per device, enforced in-memory before DB write. 30s grace period on WS disconnect.
+> Orphan cleanup on startup closes all sessions with `ended_at = null` as `server_restart`.
+
+25 | FEAT    | Implemented WebSocket /control handler and session REST routes
+> Created `src/routes/control.ts` — WS /control?token=JWT with zero-await joystick hot path.
+> JWT verified once on upgrade. Per-message: session check (memory) → smart_move gate (memory) → publish.
+> Created `src/routes/session.ts` — POST/GET/DELETE /session for session lifecycle.
+> Registered @fastify/websocket plugin and wired full startup sequence in server.ts.
+
+26 | FEAT    | Wired auth/logout to session close + completed device state endpoint
+> `POST /auth/logout` now calls `sessionService.close()` before signing out — device gets stop command.
+> `GET /devices/:id/state` returns full `{desired, reported, delta, session}` from memory, no longer a stub.
+
+27 | FEAT    | Dashboard Session Indicator (Header)
+> Backend: Added `EventEmitter` to `SessionService` to emit `session_change` events.
+> Backend: Wired `SessionService` to `sseService` for real-time broadcasting.
+> Frontend: Created `SessionIndicator` component in header to show active session status.
+> Frontend: Fetches initial status from `GET /api/session` and updates via SSE.

@@ -48,10 +48,25 @@ export class DeviceService {
      */
     private shadows: Map<string, DeviceShadow> = new Map();
 
+    /**
+     * Lazy reference to MqttService.
+     * Injected via init() to avoid circular imports
+     * (TelemetryService imports DeviceService; server.ts imports both).
+     */
+    private mqtt: { publishJoystick: (payload: { throttle: number; steering: number }) => void; publishRoute: (action: string, waypoints?: Array<{ lat: number; lng: number }>) => void } | null = null;
+
     constructor() {
         const supabaseUrl = process.env.SUPABASE_URL || '';
         const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
         this.supabase = createClient(supabaseUrl, supabaseKey);
+    }
+
+    /**
+     * Inject MqttService reference at init time.
+     * Called once in server.ts after both singletons are created.
+     */
+    init(mqtt: { publishJoystick: (payload: { throttle: number; steering: number }) => void; publishRoute: (action: string, waypoints?: Array<{ lat: number; lng: number }>) => void }): void {
+        this.mqtt = mqtt;
     }
 
     // ── Shadow Operations (synchronous, in-memory) ──────────────
@@ -105,6 +120,51 @@ export class DeviceService {
     setDesired(deviceId: string, partial: Partial<DeviceShadow['desired']>): void {
         const shadow = this.getOrCreateShadow(deviceId);
         shadow.desired = { ...shadow.desired, ...partial };
+    }
+
+    /**
+     * Reset desired state to idle defaults.
+     * Used on session close and disconnect timeout.
+     * Synchronous — zero DB, zero await.
+     */
+    resetDesired(deviceId: string): void {
+        const shadow = this.getOrCreateShadow(deviceId);
+        shadow.desired = {
+            mode: 'idle',
+            throttle: 0,
+            steering: 0,
+            route: null,
+        };
+    }
+
+    // ── Publish Operations (fire-and-forget, zero await) ────────
+
+    /**
+     * Publish a joystick command to the device.
+     * Updates desired in-memory and publishes via MQTT.
+     * QoS 0, no callback, no await — this is the hot path.
+     */
+    publishJoystick(deviceId: string, payload: { throttle: number; steering: number }): void {
+        this.setDesired(deviceId, { throttle: payload.throttle, steering: payload.steering });
+        if (this.mqtt) {
+            this.mqtt.publishJoystick(payload);
+        }
+    }
+
+    /**
+     * Publish a route command to the device.
+     * Updates desired in-memory and publishes via MQTT.
+     * QoS 1 for reliable delivery — routes are infrequent.
+     */
+    publishRoute(deviceId: string, action: string, waypoints?: Array<{ lat: number; lng: number }>): void {
+        if (action === 'start' && waypoints) {
+            this.setDesired(deviceId, { mode: 'auto', route: waypoints });
+        } else if (action === 'stop') {
+            this.resetDesired(deviceId);
+        }
+        if (this.mqtt) {
+            this.mqtt.publishRoute(action, waypoints);
+        }
     }
 
     /**

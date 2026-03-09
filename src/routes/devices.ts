@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { deviceService } from '../services/device.service';
+import { sessionService } from '../services/session.service';
 
 export default async function deviceRoutes(fastify: FastifyInstance) {
     /**
@@ -61,7 +62,8 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
 
     /**
      * GET /devices/:id/state
-     * Returns the shadow state (currently a stub).
+     * Returns full shadow state: { desired, reported, delta, session }.
+     * All reads are from memory — zero DB queries.
      */
     fastify.get('/devices/:id/state', {
         onRequest: [fastify.authenticate],
@@ -74,6 +76,20 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
             return reply.status(404).send({ error: 'Device not found' });
         }
 
-        return deviceService.getState(id);
+        const state = deviceService.getState(id);
+        const activeSession = sessionService.getActive(id);
+
+        return {
+            ...state,
+            session: activeSession
+                ? {
+                    sessionId: activeSession.sessionId,
+                    userId: activeSession.userId,
+                    connectedAt: activeSession.connectedAt,
+                    active: true,
+                }
+                : null,
+        };
     });
 }
+

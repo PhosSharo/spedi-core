@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
+import websocket from '@fastify/websocket';
 import healthRoutes from './routes/health';
 import authRoutes from './routes/auth';
 import configRoutes from './routes/config';
@@ -25,12 +26,17 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 import { configService } from './services/config.service';
 import { mqttService } from './services/mqtt.service';
+import { deviceService } from './services/device.service';
+import { sessionService } from './services/session.service';
 import { telemetryService } from './services/telemetry.service';
 import { sseService } from './services/sse.service';
 import realtimeRoutes from './routes/realtime';
+import controlRoutes from './routes/control';
+import sessionRoutes from './routes/session';
 
 // Register plugins
 fastify.register(authPlugin);
+fastify.register(websocket);
 
 // Register routes
 fastify.register(healthRoutes);
@@ -38,6 +44,8 @@ fastify.register(authRoutes);
 fastify.register(configRoutes);
 fastify.register(deviceRoutes);
 fastify.register(realtimeRoutes);
+fastify.register(controlRoutes);
+fastify.register(sessionRoutes);
 
 const start = async () => {
     try {
@@ -45,6 +53,17 @@ const start = async () => {
         fastify.log.info('Validating Supabase connection...');
         await configService.load();
         fastify.log.info('Supabase connection verified and config loaded.');
+
+        // 2. Inject MqttService into DeviceService (avoids circular imports)
+        deviceService.init(mqttService);
+
+        // 3. Inject MQTT stop publisher into SessionService
+        sessionService.init(() => {
+            mqttService.publishJoystick({ throttle: 0, steering: 0 });
+        });
+
+        // 4. Close orphaned sessions from previous run
+        await sessionService.closeOrphaned();
 
         // Wire SSE to Telemetry ingestion
         telemetryService.onSSE((deviceId, payload) => {
@@ -72,13 +91,22 @@ const start = async () => {
             });
         });
 
-        // 2. MQTTClient connects (after config is available)
+        // 5. Wire SSE to Session change events
+        sessionService.on('session_change', (deviceId, session) => {
+            sseService.broadcast({
+                type: 'session_change',
+                deviceId,
+                payload: session // session is ActiveSession | null
+            });
+        });
+
+        // 6. MQTTClient connects (after config is available)
         fastify.log.info('Connecting to MQTT broker...');
         mqttService.onMessage((topic, payload) => telemetryService.ingest(topic, payload));
         await mqttService.connect();
         fastify.log.info('MQTT broker connected.');
 
-        // 3. HTTP server starts accepting
+        // 6. HTTP server starts accepting
         const port = Number(process.env.PORT) || 3000;
         await fastify.listen({ port, host: '0.0.0.0' });
         console.log(`Server listening on port ${port}`);

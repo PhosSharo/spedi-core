@@ -6,6 +6,7 @@ import { RiRobot2Line, RiSignalTowerLine, RiDashboard3Line, RiLoader4Line, RiLog
 import { getToken, setToken } from '@/lib/auth-store';
 
 import { TelemetryPanel } from './components/telemetry-panel';
+import { SessionIndicator } from './components/session-indicator';
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,7 @@ export default function Home() {
           </div>
           SPEDI Platform
         </div>
+        <SessionIndicator />
         <div className="flex items-center gap-4 text-sm">
           <span className="text-zinc-400 font-mono">
             {user?.email}

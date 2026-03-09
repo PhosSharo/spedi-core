@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
 import healthRoutes from './routes/health';
+import authRoutes from './routes/auth';
+import authPlugin from './plugins/auth.plugin';
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -19,8 +21,12 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Register plugins
+fastify.register(authPlugin);
+
 // Register routes
 fastify.register(healthRoutes);
+fastify.register(authRoutes);
 
 const start = async () => {
     try {
@@ -29,7 +35,7 @@ const start = async () => {
         const { error } = await supabase.from('config').select('id').limit(1);
 
         if (error) {
-            fastify.log.error({ err: error }, 'FATAL: Failed to connect to Supabase or execute simple query');
+            fastify.log.error({ err: error, message: error.message }, 'FATAL: Failed to connect to Supabase or execute simple query');
             process.exit(1);
         }
         fastify.log.info('Supabase connection verified successfully.');

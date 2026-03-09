@@ -40,6 +40,42 @@ import { routeService } from './services/route.service';
 fastify.register(authPlugin);
 fastify.register(websocket);
 
+// Register OpenAPI spec
+import swagger from '@fastify/swagger';
+fastify.register(swagger, {
+    openapi: {
+        info: {
+            title: 'SPEDI Platform API',
+            description: 'Backend API for the SPEDI autonomous boat orchestration platform.',
+            version: '1.0.0',
+        },
+        components: {
+            securitySchemes: {
+                BearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                    description: 'Supabase JWT obtained via POST /auth/login',
+                },
+            },
+        },
+        tags: [
+            { name: 'Auth', description: 'Authentication endpoints' },
+            { name: 'Devices', description: 'Device management and shadow state' },
+            { name: 'Sessions', description: 'Control session mutex' },
+            { name: 'Routes', description: 'Autonomous route management' },
+            { name: 'Config', description: 'System configuration (superuser)' },
+            { name: 'Realtime', description: 'SSE and WebSocket streams' },
+            { name: 'System', description: 'Health and diagnostics' },
+        ],
+    },
+});
+
+// Expose spec at GET /openapi.json
+fastify.get('/openapi.json', { schema: { hide: true } }, async () => {
+    return fastify.swagger();
+});
+
 // Register routes
 fastify.register(healthRoutes);
 fastify.register(authRoutes);

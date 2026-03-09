@@ -1,14 +1,44 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { configService } from '../services/config.service';
 
+const ErrorResponse = {
+    type: 'object',
+    properties: {
+        error: { type: 'string' },
+    },
+};
+
+const ConfigEntry = {
+    type: 'object',
+    properties: {
+        id: { type: 'number' },
+        key: { type: 'string' },
+        value: { type: 'string' },
+        description: { type: 'string', nullable: true },
+        updated_at: { type: 'string', format: 'date-time' },
+        updated_by: { type: 'string', format: 'uuid', nullable: true },
+    },
+};
+
 export default async function configRoutes(fastify: FastifyInstance) {
     /**
      * GET /config
-     * Returns all configuration rows.
-     * Restricted to superusers.
      */
     fastify.get('/config', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Config'],
+            summary: 'Get all configuration entries',
+            description: 'Returns all system configuration key-value pairs. Superuser only.',
+            security: [{ BearerAuth: [] }],
+            response: {
+                200: {
+                    type: 'array',
+                    items: ConfigEntry,
+                },
+                403: ErrorResponse,
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const user = request.user;
         if (!user || !user.is_superuser) {
@@ -19,12 +49,44 @@ export default async function configRoutes(fastify: FastifyInstance) {
 
     /**
      * PUT /config
-     * Updates multiple configuration entries.
-     * Body: { updates: [{ key: string, value: string }] }
-     * Restricted to superusers.
      */
     fastify.put('/config', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Config'],
+            summary: 'Update configuration entries',
+            description: 'Batch-updates configuration key-value pairs. Superuser only.',
+            security: [{ BearerAuth: [] }],
+            body: {
+                type: 'object',
+                required: ['updates'],
+                properties: {
+                    updates: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            required: ['key', 'value'],
+                            properties: {
+                                key: { type: 'string' },
+                                value: { type: 'string' },
+                            },
+                        },
+                    },
+                },
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        reloaded: { type: 'boolean' },
+                    },
+                },
+                400: ErrorResponse,
+                403: ErrorResponse,
+                500: ErrorResponse,
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const user = request.user;
         if (!user || !user.is_superuser) {

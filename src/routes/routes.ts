@@ -1,25 +1,67 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { routeService } from '../services/route.service';
 
-/**
- * Route REST endpoints.
- *
- * GET    /routes            — List routes (query: device_id, status)
- * POST   /routes            — Create draft route
- * GET    /routes/:id        — Get route by ID
- * DELETE /routes/:id        — Delete draft route
- * POST   /routes/:id/start  — Dispatch route (validate + publish)
- * POST   /routes/:id/stop   — Abort active route
- */
+const ErrorResponse = {
+    type: 'object',
+    properties: {
+        error: { type: 'string' },
+        message: { type: 'string' },
+    },
+};
+
+const WaypointSchema = {
+    type: 'object',
+    properties: {
+        lat: { type: 'number' },
+        lng: { type: 'number' },
+    },
+};
+
+const RouteRecord = {
+    type: 'object',
+    properties: {
+        id: { type: 'string', format: 'uuid' },
+        device_id: { type: 'string', format: 'uuid' },
+        created_by: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+        waypoints: { type: 'array', items: WaypointSchema },
+        status: { type: 'string', enum: ['draft', 'active', 'completed', 'aborted'] },
+        created_at: { type: 'string', format: 'date-time' },
+        dispatched_at: { type: 'string', format: 'date-time', nullable: true },
+        completed_at: { type: 'string', format: 'date-time', nullable: true },
+    },
+};
 
 const routeRoutes: FastifyPluginAsync = async (fastify) => {
     /**
      * GET /routes
-     * Query: device_id, status, limit, offset
-     * Paginated list of routes.
      */
     fastify.get('/routes', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Routes'],
+            summary: 'List routes',
+            description: 'Paginated list of routes. Filter by device_id and status.',
+            security: [{ BearerAuth: [] }],
+            querystring: {
+                type: 'object',
+                properties: {
+                    device_id: { type: 'string', format: 'uuid' },
+                    status: { type: 'string', enum: ['draft', 'active', 'completed', 'aborted'] },
+                    limit: { type: 'integer', default: 50, minimum: 1, maximum: 100 },
+                    offset: { type: 'integer', default: 0, minimum: 0 },
+                },
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        data: { type: 'array', items: RouteRecord },
+                        count: { type: 'integer' },
+                    },
+                },
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const { device_id, status, limit, offset } = request.query as {
             device_id?: string;
@@ -35,16 +77,45 @@ const routeRoutes: FastifyPluginAsync = async (fastify) => {
             { device_id, status },
             { limit: parsedLimit, offset: parsedOffset }
         );
-        return result; // returns { data, count }
+        return result;
     });
 
     /**
      * POST /routes
-     * Body: { device_id, name, waypoints: [{lat, lng}, ...] }
-     * Creates a draft route. Validates ≥2 waypoints.
      */
     fastify.post('/routes', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Routes'],
+            summary: 'Create a draft route',
+            description: 'Creates a new route in draft status. Requires ≥2 waypoints with valid coordinates.',
+            security: [{ BearerAuth: [] }],
+            body: {
+                type: 'object',
+                required: ['device_id', 'name', 'waypoints'],
+                properties: {
+                    device_id: { type: 'string' },
+                    name: { type: 'string', minLength: 1 },
+                    waypoints: {
+                        type: 'array',
+                        minItems: 2,
+                        items: {
+                            type: 'object',
+                            required: ['lat', 'lng'],
+                            properties: {
+                                lat: { type: 'number' },
+                                lng: { type: 'number' },
+                            },
+                        },
+                    },
+                },
+            },
+            response: {
+                201: RouteRecord,
+                400: ErrorResponse,
+                500: ErrorResponse,
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const { device_id, name, waypoints } = request.body as {
             device_id: string;
@@ -60,7 +131,6 @@ const routeRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.code(400).send({ error: 'Bad Request', message: 'At least 2 waypoints are required' });
         }
 
-        // Validate coordinate structure
         for (const wp of waypoints) {
             if (typeof wp.lat !== 'number' || typeof wp.lng !== 'number') {
                 return reply.code(400).send({ error: 'Bad Request', message: 'Each waypoint must have numeric lat and lng' });
@@ -81,6 +151,20 @@ const routeRoutes: FastifyPluginAsync = async (fastify) => {
      */
     fastify.get('/routes/:id', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Routes'],
+            summary: 'Get route by ID',
+            description: 'Returns the full route record including waypoints.',
+            security: [{ BearerAuth: [] }],
+            params: {
+                type: 'object',
+                properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            response: {
+                200: RouteRecord,
+                404: ErrorResponse,
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
         const route = await routeService.getById(id);
@@ -92,10 +176,28 @@ const routeRoutes: FastifyPluginAsync = async (fastify) => {
 
     /**
      * DELETE /routes/:id
-     * Only draft routes can be deleted.
      */
     fastify.delete('/routes/:id', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Routes'],
+            summary: 'Delete a draft route',
+            description: 'Deletes a route. Only routes in draft status can be deleted.',
+            security: [{ BearerAuth: [] }],
+            params: {
+                type: 'object',
+                properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: { message: { type: 'string' } },
+                },
+                403: ErrorResponse,
+                404: ErrorResponse,
+                409: ErrorResponse,
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
         try {
@@ -112,10 +214,25 @@ const routeRoutes: FastifyPluginAsync = async (fastify) => {
 
     /**
      * POST /routes/:id/start
-     * Dispatches the route. Validates preconditions, publishes to MQTT.
      */
     fastify.post('/routes/:id/start', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Routes'],
+            summary: 'Dispatch a route',
+            description: 'Starts an autonomous route. Validates: route is draft/aborted, no active route on device, active session exists. Publishes waypoints to device via MQTT.',
+            security: [{ BearerAuth: [] }],
+            params: {
+                type: 'object',
+                properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            response: {
+                200: RouteRecord,
+                403: ErrorResponse,
+                404: ErrorResponse,
+                409: ErrorResponse,
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
         try {
@@ -132,10 +249,28 @@ const routeRoutes: FastifyPluginAsync = async (fastify) => {
 
     /**
      * POST /routes/:id/stop
-     * Aborts the active route.
      */
     fastify.post('/routes/:id/stop', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Routes'],
+            summary: 'Abort an active route',
+            description: 'Aborts an active route. Resets desired state to idle and publishes stop_route to the device.',
+            security: [{ BearerAuth: [] }],
+            params: {
+                type: 'object',
+                properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: { message: { type: 'string' } },
+                },
+                403: ErrorResponse,
+                404: ErrorResponse,
+                409: ErrorResponse,
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
         try {

@@ -2,13 +2,86 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { deviceService } from '../services/device.service';
 import { sessionService } from '../services/session.service';
 
+const ErrorResponse = {
+    type: 'object',
+    properties: {
+        error: { type: 'string' },
+    },
+};
+
+const DeviceRecord = {
+    type: 'object',
+    properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+        mqtt_client_id: { type: 'string' },
+        owner_id: { type: 'string', format: 'uuid' },
+        created_at: { type: 'string', format: 'date-time' },
+        last_seen_at: { type: 'string', format: 'date-time', nullable: true },
+    },
+};
+
+const WaypointSchema = {
+    type: 'object',
+    properties: {
+        lat: { type: 'number' },
+        lng: { type: 'number' },
+    },
+};
+
+const DeviceState = {
+    type: 'object',
+    properties: {
+        desired: {
+            type: 'object',
+            properties: {
+                mode: { type: 'string', enum: ['idle', 'manual', 'auto'] },
+                throttle: { type: 'number' },
+                steering: { type: 'number' },
+                route: { type: 'array', items: WaypointSchema, nullable: true },
+            },
+        },
+        reported: {
+            type: 'object',
+            properties: {
+                mode: { type: 'string', nullable: true },
+                lat: { type: 'number', nullable: true },
+                lng: { type: 'number', nullable: true },
+                obstacle_left: { type: 'number', nullable: true },
+                obstacle_right: { type: 'number', nullable: true },
+                smart_move_active: { type: 'boolean', nullable: true },
+                waypoint_index: { type: 'number', nullable: true },
+            },
+        },
+        delta: { type: 'object', additionalProperties: true },
+        session: {
+            type: 'object',
+            nullable: true,
+            properties: {
+                sessionId: { type: 'string', format: 'uuid' },
+                userId: { type: 'string', format: 'uuid' },
+                connectedAt: { type: 'string', format: 'date-time' },
+                active: { type: 'boolean' },
+            },
+        },
+    },
+};
+
 export default async function deviceRoutes(fastify: FastifyInstance) {
     /**
      * GET /devices
-     * Lists all devices.
      */
     fastify.get('/devices', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Devices'],
+            summary: 'List all devices',
+            description: 'Returns all registered devices.',
+            security: [{ BearerAuth: [] }],
+            response: {
+                200: { type: 'array', items: DeviceRecord },
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const devices = await deviceService.listDevices();
         return devices;
@@ -16,10 +89,23 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
 
     /**
      * GET /devices/:id
-     * Returns full device record.
      */
     fastify.get('/devices/:id', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Devices'],
+            summary: 'Get device by ID',
+            description: 'Returns the full device record.',
+            security: [{ BearerAuth: [] }],
+            params: {
+                type: 'object',
+                properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            response: {
+                200: DeviceRecord,
+                404: ErrorResponse,
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
         const device = await deviceService.getDeviceById(id);
@@ -33,12 +119,29 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
 
     /**
      * POST /devices
-     * Registers a new device.
-     * Body: { name: string, mqtt_client_id: string }
-     * Restricted to superusers.
      */
     fastify.post('/devices', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Devices'],
+            summary: 'Register a new device',
+            description: 'Creates a new device record. Superuser only.',
+            security: [{ BearerAuth: [] }],
+            body: {
+                type: 'object',
+                required: ['name', 'mqtt_client_id'],
+                properties: {
+                    name: { type: 'string' },
+                    mqtt_client_id: { type: 'string' },
+                },
+            },
+            response: {
+                201: DeviceRecord,
+                400: ErrorResponse,
+                403: ErrorResponse,
+                500: ErrorResponse,
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const user = request.user;
         if (!user || !user.is_superuser) {
@@ -62,15 +165,26 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
 
     /**
      * GET /devices/:id/state
-     * Returns full shadow state: { desired, reported, delta, session }.
-     * All reads are from memory — zero DB queries.
      */
     fastify.get('/devices/:id/state', {
         onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Devices'],
+            summary: 'Get device shadow state',
+            description: 'Returns the full shadow state (desired, reported, delta) and active session info. All reads are from memory — zero DB queries.',
+            security: [{ BearerAuth: [] }],
+            params: {
+                type: 'object',
+                properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            response: {
+                200: DeviceState,
+                404: ErrorResponse,
+            },
+        },
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.params as { id: string };
 
-        // Verify device exists
         const device = await deviceService.getDeviceById(id);
         if (!device) {
             return reply.status(404).send({ error: 'Device not found' });
@@ -92,4 +206,3 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
         };
     });
 }
-

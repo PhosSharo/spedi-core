@@ -2,9 +2,58 @@ import { FastifyInstance } from 'fastify';
 import { authService } from '../services/auth.service';
 import { sessionService } from '../services/session.service';
 
+const ErrorResponse = {
+    type: 'object',
+    properties: {
+        error: { type: 'string' },
+        message: { type: 'string' },
+    },
+};
+
+const UserObject = {
+    type: 'object',
+    properties: {
+        id: { type: 'string', format: 'uuid' },
+        email: { type: 'string', format: 'email' },
+        is_superuser: { type: 'boolean' },
+    },
+};
+
 export default async function authRoutes(fastify: FastifyInstance) {
     // POST /auth/login
-    fastify.post('/auth/login', async (request, reply) => {
+    fastify.post('/auth/login', {
+        schema: {
+            tags: ['Auth'],
+            summary: 'Login with email and password',
+            description: 'Authenticates a user via Supabase Auth and returns a JWT.',
+            body: {
+                type: 'object',
+                required: ['email', 'password'],
+                properties: {
+                    email: { type: 'string', format: 'email' },
+                    password: { type: 'string', minLength: 1 },
+                },
+            },
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        user: UserObject,
+                        session: {
+                            type: 'object',
+                            properties: {
+                                access_token: { type: 'string' },
+                                refresh_token: { type: 'string' },
+                                expires_in: { type: 'number' },
+                            },
+                        },
+                    },
+                },
+                400: ErrorResponse,
+                401: ErrorResponse,
+            },
+        },
+    }, async (request, reply) => {
         const { email, password } = request.body as any;
 
         if (!email || !password) {
@@ -31,9 +80,25 @@ export default async function authRoutes(fastify: FastifyInstance) {
     });
 
     // POST /auth/logout
-    fastify.post('/auth/logout', { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    fastify.post('/auth/logout', {
+        preHandler: [(fastify as any).authenticate],
+        schema: {
+            tags: ['Auth'],
+            summary: 'Logout',
+            description: 'Signs the user out and closes any active control session. Publishes stop to the device.',
+            security: [{ BearerAuth: [] }],
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        message: { type: 'string' },
+                    },
+                },
+                500: ErrorResponse,
+            },
+        },
+    }, async (request, reply) => {
         try {
-            // Close any active control session before logging out
             if (request.user) {
                 sessionService.close(request.user.id, 'user_disconnect');
             }
@@ -46,7 +111,18 @@ export default async function authRoutes(fastify: FastifyInstance) {
     });
 
     // GET /auth/me
-    fastify.get('/auth/me', { preHandler: [(fastify as any).authenticate] }, async (request) => {
+    fastify.get('/auth/me', {
+        preHandler: [(fastify as any).authenticate],
+        schema: {
+            tags: ['Auth'],
+            summary: 'Get current user',
+            description: 'Returns the authenticated user profile.',
+            security: [{ BearerAuth: [] }],
+            response: {
+                200: UserObject,
+            },
+        },
+    }, async (request) => {
         return request.user;
     });
 }

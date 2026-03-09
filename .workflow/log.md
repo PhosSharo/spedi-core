@@ -148,3 +148,8 @@
 > onTelemetry() detects `autopilot_active` true→false transition to mark route as completed. Async DB write.
 > Created `src/routes/routes.ts` — CRUD + POST /:id/start (dispatch) + POST /:id/stop (abort).
 > Wired into telemetry pipeline via existing `telemetryService.onRoute()` hook.
+
+29 | FEAT    | OpenAPI spec with @fastify/swagger
+> Installed `@fastify/swagger`. Registered with OpenAPI 3.0 metadata, BearerAuth security scheme, and tags.
+> Annotated all 8 route files (health, auth, config, devices, session, routes, realtime, control) with full schemas.
+> Spec exposed at `GET /openapi.json`.

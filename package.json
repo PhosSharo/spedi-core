@@ -13,6 +13,7 @@
     "db:seed:superuser": "ts-node src/db/seed-superuser.ts"
   },
   "dependencies": {
+    "@fastify/swagger": "^9.7.0",
     "@fastify/websocket": "^11.2.0",
     "@remixicon/react": "^4.9.0",
     "@supabase/supabase-js": "^2.99.0",

@@ -1,23 +1,51 @@
 import { FastifyPluginAsync } from 'fastify';
 import { sessionService } from '../services/session.service';
 
-/**
- * Session REST routes — open, get, close control sessions.
- *
- * POST /session — opens a session for a device. 409 if claimed.
- * GET  /session — returns the current active session for the requesting user.
- * DELETE /session — closes the active session.
- *
- * All routes require authentication.
- */
+const ErrorResponse = {
+    type: 'object',
+    properties: {
+        error: { type: 'string' },
+        message: { type: 'string' },
+    },
+};
+
+const ActiveSessionSchema = {
+    type: 'object',
+    nullable: true,
+    properties: {
+        sessionId: { type: 'string', format: 'uuid' },
+        userId: { type: 'string', format: 'uuid' },
+        deviceId: { type: 'string' },
+        connectedAt: { type: 'string', format: 'date-time' },
+    },
+};
 
 const sessionRoutes: FastifyPluginAsync = async (fastify) => {
     /**
      * POST /session
-     * Body: { device_id: string }
-     * Opens a control session. Sets desired.mode = manual.
      */
-    fastify.post('/session', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    fastify.post('/session', {
+        preHandler: [fastify.authenticate],
+        schema: {
+            tags: ['Sessions'],
+            summary: 'Open a control session',
+            description: 'Opens a control session for a device. Returns 409 if the device is already claimed by another user. Sets desired.mode to manual.',
+            security: [{ BearerAuth: [] }],
+            body: {
+                type: 'object',
+                required: ['device_id'],
+                properties: {
+                    device_id: { type: 'string' },
+                },
+            },
+            response: {
+                200: ActiveSessionSchema,
+                400: ErrorResponse,
+                409: ErrorResponse,
+                500: ErrorResponse,
+            },
+        },
+    }, async (request, reply) => {
         const { device_id } = request.body as { device_id: string };
 
         if (!device_id) {
@@ -38,9 +66,19 @@ const sessionRoutes: FastifyPluginAsync = async (fastify) => {
 
     /**
      * GET /session
-     * Returns the active session for the requesting user, or null.
      */
-    fastify.get('/session', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    fastify.get('/session', {
+        preHandler: [fastify.authenticate],
+        schema: {
+            tags: ['Sessions'],
+            summary: 'Get active session',
+            description: 'Returns the active session for the requesting user, or null if no session is active.',
+            security: [{ BearerAuth: [] }],
+            response: {
+                200: ActiveSessionSchema,
+            },
+        },
+    }, async (request, reply) => {
         const deviceId = sessionService.getDeviceForUser(request.user!.id);
         if (!deviceId) {
             return reply.code(200).send(null);
@@ -52,10 +90,25 @@ const sessionRoutes: FastifyPluginAsync = async (fastify) => {
 
     /**
      * DELETE /session
-     * Closes the active session for the requesting user.
-     * Resets desired to idle and publishes stop.
      */
-    fastify.delete('/session', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    fastify.delete('/session', {
+        preHandler: [fastify.authenticate],
+        schema: {
+            tags: ['Sessions'],
+            summary: 'Close active session',
+            description: 'Closes the active session for the requesting user. Resets desired state to idle and publishes a stop command to the device.',
+            security: [{ BearerAuth: [] }],
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        message: { type: 'string' },
+                    },
+                },
+                404: ErrorResponse,
+            },
+        },
+    }, async (request, reply) => {
         const deviceId = sessionService.getDeviceForUser(request.user!.id);
         if (!deviceId) {
             return reply.code(404).send({ error: 'Not Found', message: 'No active session' });

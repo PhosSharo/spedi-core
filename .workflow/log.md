@@ -163,3 +163,9 @@
 > Created `src/routes/telemetry.ts` — `GET /telemetry` with cursor-based pagination, date range filters.
 > Created `app/telemetry/page.tsx` — device selector, date pickers, canvas line chart (GPS + obstacles), data table, and "Load More" pagination.
 > Added "Telemetry" link to `Navbar`.
+
+32 | FEAT    | Testing utilities — joystick + path simulator
+> Created `app/testing/page.tsx` — two testing tools hitting real API endpoints.
+> Joystick: open session → WS connect → d-pad/sliders/keyboard → send commands (single or continuous 200ms).
+> Path: create route with JSON waypoints → dispatch → abort → delete draft.
+> Added "Testing" link to `Navbar`.

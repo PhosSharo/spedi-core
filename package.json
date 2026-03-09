@@ -3,16 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "nodemon --watch src/**/*.ts --exec ts-node src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "lint": "eslint"
+    "dev": "next dev",
+    "dev:backend": "nodemon --watch src/**/*.ts --exec ts-node src/server.ts",
+    "build": "next build",
+    "build:backend": "tsc",
+    "start": "next start",
+    "start:backend": "node dist/server.js",
+    "lint": "next lint"
   },
   "dependencies": {
     "@remixicon/react": "^4.9.0",
     "@supabase/supabase-js": "^2.99.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.3.1",
     "fastify": "^5.8.2",
     "next": "16.1.6",
     "radix-ui": "^1.4.3",

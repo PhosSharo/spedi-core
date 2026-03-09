@@ -7,6 +7,7 @@ import { getToken, setToken } from '@/lib/auth-store';
 
 import { TelemetryPanel } from './components/telemetry-panel';
 import { SessionIndicator } from './components/session-indicator';
+import { Navbar } from './components/navbar';
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -74,35 +75,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-indigo-500/30">
-      <nav className="border-b border-zinc-800 bg-zinc-900/50 p-4 px-6 flex items-center justify-between">
-        <div className="flex items-center gap-2 font-medium">
-          <div className="bg-indigo-500/10 text-indigo-400 p-1.5 rounded-md">
-            <RiRobot2Line size={20} />
-          </div>
-          SPEDI Platform
-        </div>
-        <SessionIndicator />
-        <div className="flex items-center gap-4 text-sm">
-          <span className="text-zinc-400 font-mono">
-            {user?.email}
-            {user?.is_superuser && <span className="ml-2 text-emerald-400 font-sans font-medium bg-emerald-400/10 px-2 py-0.5 rounded">Superuser</span>}
-          </span>
-          {user?.is_superuser && (
-            <button
-              onClick={() => router.push('/config')}
-              className="flex items-center gap-1.5 text-zinc-400 hover:text-indigo-400 transition-colors ml-4 mr-2"
-            >
-              Config
-            </button>
-          )}
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-zinc-400 hover:text-red-400 transition-colors"
-          >
-            <RiLogoutBoxRLine size={16} /> Logout
-          </button>
-        </div>
-      </nav>
+      <Navbar user={user} onLogout={handleLogout} />
+
 
       {/* Observability Panel */}
       <main className="container mx-auto max-w-6xl px-6 py-12">

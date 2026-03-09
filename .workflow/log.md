@@ -153,3 +153,8 @@
 > Installed `@fastify/swagger`. Registered with OpenAPI 3.0 metadata, BearerAuth security scheme, and tags.
 > Annotated all 8 route files (health, auth, config, devices, session, routes, realtime, control) with full schemas.
 > Spec exposed at `GET /openapi.json`.
+
+30 | FEAT    | API Documentation page with Scalar
+> Extracted `Navbar` from `app/page.tsx` into `app/components/navbar.tsx`.
+> Installed `@scalar/api-reference-react` and created `app/docs/page.tsx`.
+> Documents all backend endpoints in real-time from `/api/openapi.json`.

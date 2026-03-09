@@ -83,6 +83,14 @@ export default function Home() {
             {user?.email}
             {user?.is_superuser && <span className="ml-2 text-emerald-400 font-sans font-medium bg-emerald-400/10 px-2 py-0.5 rounded">Superuser</span>}
           </span>
+          {user?.is_superuser && (
+            <button
+              onClick={() => router.push('/config')}
+              className="flex items-center gap-1.5 text-zinc-400 hover:text-indigo-400 transition-colors ml-4 mr-2"
+            >
+              Config
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 text-zinc-400 hover:text-red-400 transition-colors"

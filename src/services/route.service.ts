@@ -258,10 +258,16 @@ export class RouteService {
     }
 
     /**
-     * List routes with optional filters.
+     * List routes with optional filters and pagination.
      */
-    async list(filters?: { device_id?: string; status?: string }): Promise<RouteRecord[]> {
-        let query = this.supabase.from('routes').select('*').order('created_at', { ascending: false });
+    async list(
+        filters?: { device_id?: string; status?: string },
+        pagination?: { limit?: number; offset?: number }
+    ): Promise<{ data: RouteRecord[]; count: number }> {
+        let query = this.supabase
+            .from('routes')
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false });
 
         if (filters?.device_id) {
             query = query.eq('device_id', filters.device_id);
@@ -270,14 +276,22 @@ export class RouteService {
             query = query.eq('status', filters.status);
         }
 
-        const { data, error } = await query;
+        const limit = pagination?.limit || 50;
+        const offset = pagination?.offset || 0;
+
+        query = query.range(offset, offset + limit - 1);
+
+        const { data, count, error } = await query;
 
         if (error) {
             console.error('RouteService: Failed to list routes:', error);
             throw error;
         }
 
-        return data || [];
+        return {
+            data: data || [],
+            count: count || 0
+        };
     }
 
     /**

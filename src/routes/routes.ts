@@ -15,14 +15,27 @@ import { routeService } from '../services/route.service';
 const routeRoutes: FastifyPluginAsync = async (fastify) => {
     /**
      * GET /routes
-     * Query: device_id, status
+     * Query: device_id, status, limit, offset
+     * Paginated list of routes.
      */
     fastify.get('/routes', {
         onRequest: [fastify.authenticate],
     }, async (request: FastifyRequest, reply: FastifyReply) => {
-        const { device_id, status } = request.query as { device_id?: string; status?: string };
-        const routes = await routeService.list({ device_id, status });
-        return routes;
+        const { device_id, status, limit, offset } = request.query as {
+            device_id?: string;
+            status?: string;
+            limit?: string;
+            offset?: string;
+        };
+
+        const parsedLimit = limit ? parseInt(limit, 10) : 50;
+        const parsedOffset = offset ? parseInt(offset, 10) : 0;
+
+        const result = await routeService.list(
+            { device_id, status },
+            { limit: parsedLimit, offset: parsedOffset }
+        );
+        return result; // returns { data, count }
     });
 
     /**

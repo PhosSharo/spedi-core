@@ -325,3 +325,7 @@
 > Added fullscreen overlay mode for the map with Escape-key collapse support.
 > Built `geo-utils` library for bearing, haversine, and route progress computation with full unit test coverage.
 > Verified Next.js production build and SSR compatibility.
+
+61 | FIX     | Tab Toggle Mount/Unmount Regression
+> Fixed SSE subscription loss caused by conditional rendering (mount/unmount) of SystemActivity and LiveMap on tab toggle.
+> Switched to CSS `hidden` class toggle — both panels stay mounted at all times, preserving subscriptions and accumulated state.

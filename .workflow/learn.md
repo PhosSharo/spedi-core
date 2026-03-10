@@ -372,3 +372,24 @@ let delta = ((to - from + 540) % 360) - 180;
 return ((from + delta * t) + 360) % 360;
 ```
 This ensures the marker always takes the smallest rotation distance across the 360/0 degree boundary.
+
+---
+
+## React Conditional Rendering — Tab Panels & SSE Subscriptions — 2026-03-11
+
+### ❌ What Failed
+After adding a tabbed toggle between LiveMap and SystemActivity, both SSE-dependent components stopped receiving events when switched away from and back.
+
+### 🔍 Why It Failed
+Using `{condition ? <A /> : <B />}` in JSX causes React to **unmount** the inactive component entirely. When a component unmounts, its `useEffect` cleanup runs, which unsubscribes from the SSE context. When re-mounted, it starts fresh with empty state and needs to re-subscribe, missing all events that occurred while hidden.
+
+### ✅ Fix / Workaround
+Render **both** components simultaneously and use CSS `hidden` class to control visibility:
+```tsx
+<div className={activePanel === 'A' ? '' : 'hidden'}><A /></div>
+<div className={activePanel === 'B' ? '' : 'hidden'}><B /></div>
+```
+Both components stay mounted, keep their SSE subscriptions active, and preserve accumulated state.
+
+### ⚠️ Watch Out
+This applies to any component with side effects (SSE, WebSocket, timers, accumulated state). Never use conditional rendering for "tab" panels if the hidden panel needs to stay alive.

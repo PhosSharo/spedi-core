@@ -273,6 +273,22 @@ export class DeviceService {
                 }
             });
     }
+    /**
+     * Deletes a device by ID. Removes from DB and clears in-memory shadow.
+     */
+    async deleteDevice(deviceId: string): Promise<void> {
+        const { error } = await this.supabase
+            .from('devices')
+            .delete()
+            .eq('id', deviceId);
+
+        if (error) {
+            console.error(`Failed to delete device ${deviceId}:`, error);
+            throw error;
+        }
+
+        this.shadows.delete(deviceId);
+    }
 }
 
 export const deviceService = new DeviceService();

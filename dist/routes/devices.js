@@ -192,4 +192,49 @@ async function deviceRoutes(fastify) {
                 : null,
         };
     });
+    /**
+     * DELETE /devices/:id
+     */
+    fastify.delete('/devices/:id', {
+        onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Devices'],
+            summary: 'Delete a device',
+            description: 'Removes a device. Superuser only. Fails if device has an active session.',
+            security: [{ BearerAuth: [] }],
+            params: {
+                type: 'object',
+                properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            response: {
+                200: { type: 'object', properties: { ok: { type: 'boolean' } } },
+                403: ErrorResponse,
+                404: ErrorResponse,
+                409: ErrorResponse,
+            },
+        },
+    }, async (request, reply) => {
+        const user = request.user;
+        if (!user || !user.is_superuser) {
+            return reply.status(403).send({ error: 'Forbidden: Superuser access required' });
+        }
+        const { id } = request.params;
+        const device = await device_service_1.deviceService.getDeviceById(id);
+        if (!device) {
+            return reply.status(404).send({ error: 'Device not found' });
+        }
+        // Block deletion if device has an active session
+        const activeSession = session_service_1.sessionService.getActive(id);
+        if (activeSession) {
+            return reply.status(409).send({ error: 'Cannot delete device with an active session' });
+        }
+        try {
+            await device_service_1.deviceService.deleteDevice(id);
+            return { ok: true };
+        }
+        catch (err) {
+            request.log.error(err);
+            return reply.status(500).send({ error: 'Failed to delete device' });
+        }
+    });
 }

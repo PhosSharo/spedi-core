@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import {
     RiLoader4Line, RiGamepadLine, RiRouteLine,
     RiPlayLine, RiStopLine, RiWifiLine, RiWifiOffLine,
-    RiArrowUpLine, RiArrowDownLine, RiArrowLeftLine, RiArrowRightLine, RiStopCircleLine
+    RiArrowUpLine, RiArrowDownLine, RiArrowLeftLine, RiArrowRightLine, RiStopCircleLine,
+    RiDeleteBinLine, RiAddLine
 } from "@remixicon/react";
 import { getToken, setToken, logoutDirect, getCurrentUser } from '@/lib/auth-store';
 import { apiFetch, getWsUrl } from '@/lib/api';
@@ -523,6 +524,25 @@ export default function TestingPage() {
     };
 
     const [creatingDevice, setCreatingDevice] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const deleteDevice = async (id: string, name: string) => {
+        if (!confirm(`Delete device "${name}"? This cannot be undone.`)) return;
+        setDeletingId(id);
+        try {
+            const res = await apiFetch(`/devices/${id}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || `HTTP ${res.status}`);
+            }
+            setDevices(prev => prev.filter(d => d.id !== id));
+        } catch (err: any) {
+            console.error('Failed to delete device:', err);
+            alert(`Failed: ${err.message}`);
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     const createTestDevice = async () => {
         setCreatingDevice(true);
@@ -587,10 +607,43 @@ export default function TestingPage() {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid gap-8 lg:grid-cols-1">
-                        <JoystickSimulator devices={devices} />
-                        <PathSimulator devices={devices} />
-                    </div>
+                    <>
+                        {/* Device management bar */}
+                        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 mb-8">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">Registered Devices</h3>
+                                <button
+                                    onClick={createTestDevice}
+                                    disabled={creatingDevice}
+                                    className="inline-flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                                >
+                                    {creatingDevice ? <RiLoader4Line className="animate-spin" size={14} /> : <RiAddLine size={14} />}
+                                    Add Test Device
+                                </button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {devices.map(d => (
+                                    <div key={d.id} className="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2 text-sm">
+                                        <span className="text-zinc-200">{d.name}</span>
+                                        <span className="text-zinc-600 font-mono text-[10px]">{d.id.slice(0, 8)}</span>
+                                        <button
+                                            onClick={() => deleteDevice(d.id, d.name)}
+                                            disabled={deletingId === d.id}
+                                            className="text-zinc-500 hover:text-red-400 transition-colors disabled:opacity-50 ml-1"
+                                            title="Delete device"
+                                        >
+                                            {deletingId === d.id ? <RiLoader4Line className="animate-spin" size={14} /> : <RiDeleteBinLine size={14} />}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="grid gap-8 lg:grid-cols-1">
+                            <JoystickSimulator devices={devices} />
+                            <PathSimulator devices={devices} />
+                        </div>
+                    </>
                 )}
             </main>
         </div>

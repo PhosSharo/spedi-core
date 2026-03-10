@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginDirect } from '@/lib/auth-store';
 import { RiRobot2Line, RiLoader4Line, RiErrorWarningLine } from '@remixicon/react';
+import { loginDirect } from '@/lib/auth-store';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');

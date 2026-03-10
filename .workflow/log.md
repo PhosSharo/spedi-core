@@ -183,3 +183,9 @@
 > Refactored `Navbar`, `TelemetryPanel`, and `SessionIndicator` core components.
 > Redesigned all routes (Login, Telemetry, Config, Docs, Testing) for visual consistency.
 > Verified successful production build via `npm run build`.
+
+35 | REDESIGN | Refactored Navigation to Left Sidebar Structure
+> Created `Sidebar` component to replace top `Navbar`.
+> Abstracted top-level page structures into a global `DashboardLayout` client wrapper.
+> Standardized all dashboard routes (Home, Telemetry, Testing, Config, Docs) within the new layout context.
+> Verified Next.js build and routing.

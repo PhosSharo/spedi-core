@@ -317,3 +317,11 @@
 59 | FIX     | Global API Error Logging
 > Added global `onError` hook to Fastify in `server.ts`.
 > Pipes all HTTP 4xx/5xx errors to `logService` so they appear in the dashboard System Activity stream.
+
+60 | FEAT    | Live Map Visualization & Toggle Navigation Panel
+> Integrated MapLibre GL JS with OpenFreeMap dark vector tiles for real-time boat tracking.
+> Implemented smooth position interpolation (rAF loop) and shortest-arc bearing rotation for telemetry stream.
+> Refactored `page.tsx` intelligence grid with a tabbed toggle between `NAV_VIEW` (default) and `SYSTEM_ACTIVITY`.
+> Added fullscreen overlay mode for the map with Escape-key collapse support.
+> Built `geo-utils` library for bearing, haversine, and route progress computation with full unit test coverage.
+> Verified Next.js production build and SSR compatibility.

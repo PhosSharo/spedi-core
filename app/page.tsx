@@ -61,13 +61,14 @@ export default function Home() {
               <div className="flex-1 border-b border-border" />
             </div>
 
-            {/* Panel Content */}
-            <div className="flex-1 min-h-0 border border-border border-t-0 rounded-b-sm overflow-hidden bg-background">
-              {activePanel === 'NAV_VIEW' ? (
+            {/* Panel Content — both panels stay mounted to preserve SSE subscriptions and state */}
+            <div className="flex-1 min-h-0 border border-border border-t-0 rounded-b-sm overflow-hidden bg-background relative">
+              <div className={`absolute inset-0 ${activePanel === 'NAV_VIEW' ? '' : 'hidden'}`}>
                 <LiveMap />
-              ) : (
+              </div>
+              <div className={`h-full ${activePanel === 'SYSTEM_ACTIVITY' ? '' : 'hidden'}`}>
                 <SystemActivity />
-              )}
+              </div>
             </div>
           </div>
 

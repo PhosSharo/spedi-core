@@ -333,3 +333,42 @@ The System Activity panel never displayed HTTP API errors (400 Bad Request, 500 
 
 ### ✅ Fix / Workaround
 Injected a global Fastify hook: `fastify.addHook('onError', ...)` in `server.ts`. This hook catches all errors right before they are sent to the client and formats them into a `logService.error('system', 'connection', ...)` broadcast, guaranteeing the dashboard sees exactly what failed.
+
+---
+
+## MapLibre GL JS — Dynamic Import & SSR — 2026-03-11
+
+### ❌ What Failed
+`import maplibregl from 'maplibre-gl'` at the top of a React component caused `ReferenceError: window is not defined` during the Next.js build (SSR phase).
+
+### 🔍 Why It Failed
+MapLibre GL JS (and Mapbox) accesses `window` and `document` immediately upon execution to check for WebGL support. Next.js attempts to pre-render every page on the server where these globals don't exist.
+
+### ✅ Fix / Workaround
+Use dynamic imports inside `useEffect` or `next/dynamic` with `{ ssr: false }`.
+In `live-map.tsx`, we used:
+```typescript
+const maplibregl = (await import('maplibre-gl')).default;
+```
+This ensures the library is only loaded on the client.
+
+### ⚠️ Watch Out
+- CSS must also be loaded carefully. Importing `.css` files inside a dynamic block can sometimes be ignored by bundlers or cause TS errors if types aren't found. We moved the MapLibre CSS import to `globals.css` for stability.
+
+---
+
+## Bearing Interpolation — Shortest-Arc — 2026-03-11
+
+### ❌ What Failed
+Linearly interpolating bearing (e.g., `prev + (next - prev) * v`) caused the boat marker to "spin the long way round" (e.g., spinning 358° clockwise to move from 359° to 1°).
+
+### 🔍 Why It Failed
+Standard `lerp` doesn't account for the circular nature of degrees (0-360). 
+
+### ✅ Fix / Workaround
+Implemented `lerpBearing` using the shortest-arc formula:
+```typescript
+let delta = ((to - from + 540) % 360) - 180;
+return ((from + delta * t) + 360) % 360;
+```
+This ensures the marker always takes the smallest rotation distance across the 360/0 degree boundary.

@@ -137,6 +137,18 @@ The system follows the **Device Shadow** pattern (Desired vs reported state).
 fastify.get('/openapi.json', { schema: { hide: true } }, async () => {
     return fastify.swagger();
 });
+// Broadcast all unhandled or API errors to the dashboard
+fastify.addHook('onError', async (request, reply, error) => {
+    const statusCode = reply.statusCode || 500;
+    // Don't broadcast 404s for favicon or maps which are spammy, but broadcast real API errors
+    if (statusCode === 404 && !request.url.startsWith('/api') && !request.url.startsWith('/devices'))
+        return;
+    const msg = `HTTP ${statusCode}: ${request.method} ${request.url} - ${error.message}`;
+    log_service_1.logService.error('system', 'connection', msg, {
+        name: error.name,
+        code: error.code
+    });
+});
 // Register routes
 fastify.register(health_1.default);
 fastify.register(auth_1.default);

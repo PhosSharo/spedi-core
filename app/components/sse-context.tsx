@@ -42,6 +42,9 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
             eventSourceRef.current = null;
         }
 
+        // Reset attached listeners tracking since this is a new EventSource instance
+        attachedTypesRef.current.clear();
+
         const token = getToken();
         if (!token) {
             setConnectionState('disconnected');

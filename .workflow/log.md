@@ -296,3 +296,12 @@
 > Established backend testing framework using Vitest.
 > Created `vitest.config.ts` and 3 dedicated test suites (34 tests total).
 > Coverage: SSE broadcast pipeline, control hot path (performance benchmarks), and session lifecycle (mutex & grace periods).
+
+55 | FIX     | CORS Header Preservation in SSE Stream
+> Injected `reply.getHeaders()` into `reply.raw.writeHead()` call in `SseService`.
+> Prevents the global Fastify CORS headers from being overwritten by the raw Node.js response writer.
+> Restores SSE visibility for cross-origin clients (Vercel).
+
+56 | FIX     | Production Build Pipeline (tsc)
+> Excluded `src/tests` from `tsconfig.build.json`.
+> Prevents `tsc` from throwing "Module not found" errors due to extensionless imports in Vitest files during Railway deployment.

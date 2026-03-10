@@ -265,3 +265,32 @@ Strictly removed all logging from performance-critical "hot paths" (Joystick, Ro
 
 ### ⚠️ Watch Out
 Always benchmark the impact of "convenience logging" on high-frequency loops. If it executes more than once per user action, it probably shouldn't be in the persistent syslog.
+---
+
+## SSE CORS Header Suppression — 2026-03-11
+
+### ❌ What Failed
+`EventSource` connections from Vercel to Railway were blocked by CORS, even though the global `@fastify/cors` plugin was configured correctly.
+
+### 🔍 Why It Failed
+The `SseService` used `reply.raw.writeHead(200, ...)` to set `text/event-stream` headers. Using the raw Node.js `writeHead` bypasses Fastify's normal `onSend` and `preSerialization` hooks, including the CORS plugin's header injection. This resulted in a response that had the right content type but was missing `Access-Control-Allow-Origin`.
+
+### ✅ Fix / Workaround
+Explicitly pull existing Fastify headers and merge them into the `writeHead` payload:
+```typescript
+const existingHeaders = reply.getHeaders ? reply.getHeaders() : {};
+reply.raw.writeHead(200, { ...existingHeaders, 'Content-Type': 'text/event-stream', ... });
+```
+
+---
+
+## Extensionless Imports in Production `tsc` — 2026-03-11
+
+### ❌ What Failed
+Railway deployments crashed during the `build:backend` step with `error TS2307: Cannot find module` for test files.
+
+### 🔍 Why It Failed
+Vitest and development environments allow extensionless imports (e.g., `import { sseService } from '../services/sseService'`). However, the production `tsconfig.build.json` uses `moduleResolution: "NodeNext"`, which strictly requires `.js` extensions or specific resolution rules that the test files (located in `src/tests/`) were violating.
+
+### ✅ Fix / Workaround
+Excluded `src/tests` from `tsconfig.build.json`. Test files are for development and CI/CD (Vitest), and do not need to be compiled for the production `dist/` bundle.

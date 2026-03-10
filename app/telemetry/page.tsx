@@ -161,18 +161,18 @@ function TelemetryChart({ records }: { records: TelemetryRecord[] }) {
 
     if (records.length === 0) {
         return (
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-12 flex items-center justify-center text-zinc-500 text-sm">
+            <div className="p-12 flex items-center justify-center text-muted-foreground text-[10px] uppercase font-sans tracking-widest">
                 No data to chart. Select a date range and query.
             </div>
         );
     }
 
     return (
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4">
+        <div className="p-2">
             <canvas
                 ref={canvasRef}
                 className="w-full"
-                style={{ height: '280px' }}
+                style={{ height: '200px' }}
             />
         </div>
     );
@@ -272,31 +272,33 @@ export default function TelemetryPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-black flex flex-col gap-4 items-center justify-center text-zinc-500">
-                <RiLoader4Line className="animate-spin" size={32} />
-                <p className="text-sm font-medium tracking-tight">Verifying credentials...</p>
+            <div className="min-h-screen bg-background flex flex-col gap-4 items-center justify-center text-muted-foreground">
+                <RiLoader4Line className="animate-spin" size={24} />
+                <p className="text-[10px] uppercase font-mono tracking-widest">SYS_INIT :: VERIFY_CREDENTIALS</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-indigo-500/30">
+        <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-foreground selection:text-background font-mono">
             <Navbar user={user} onLogout={handleLogout} />
 
-            <main className="container mx-auto max-w-7xl px-6 py-10">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold tracking-tight text-zinc-100">Telemetry History</h1>
-                    <p className="text-zinc-400 mt-1">Query historical device telemetry. Raw records, no downsampling.</p>
+            <main className="flex-1 p-4 lg:p-6 flex flex-col gap-4">
+                <div className="border-b border-border pb-4 flex items-end justify-between">
+                    <div>
+                        <h1 className="text-lg font-bold tracking-widest uppercase font-sans text-foreground">Telemetry_DB //</h1>
+                        <p className="text-[10px] text-muted-foreground mt-1 uppercase font-sans tracking-widest">Query historical device telemetry. Raw records, no downsampling.</p>
+                    </div>
                 </div>
 
                 {/* Controls */}
-                <div className="flex flex-wrap items-end gap-4 mb-8 p-4 rounded-2xl border border-zinc-800 bg-zinc-900/50">
+                <div className="flex flex-wrap items-end gap-4 p-4 rounded-sm border border-border bg-background">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Device</label>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Device_ID</label>
                         <select
                             value={deviceId}
                             onChange={(e) => setDeviceId(e.target.value)}
-                            className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                            className="bg-background border border-border rounded-sm px-3 py-1 text-xs text-foreground focus:outline-none focus:border-foreground focus:ring-1 focus:ring-foreground transition-all"
                         >
                             {devices.map(d => (
                                 <option key={d.id} value={d.id}>{d.name}</option>
@@ -305,124 +307,136 @@ export default function TelemetryPage() {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">From</label>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Query_Start</label>
                         <input
                             type="datetime-local"
                             value={from}
                             onChange={(e) => setFrom(e.target.value)}
-                            className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                            className="bg-background border border-border rounded-sm px-3 py-1 text-xs text-foreground focus:outline-none focus:border-foreground focus:ring-1 focus:ring-foreground transition-all"
                         />
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">To</label>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Query_End</label>
                         <input
                             type="datetime-local"
                             value={to}
                             onChange={(e) => setTo(e.target.value)}
-                            className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                            className="bg-background border border-border rounded-sm px-3 py-1 text-xs text-foreground focus:outline-none focus:border-foreground focus:ring-1 focus:ring-foreground transition-all"
                         />
                     </div>
 
                     <button
                         onClick={() => fetchTelemetry()}
                         disabled={querying || !deviceId}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium px-5 py-2 rounded-lg transition-colors text-sm"
+                        className="flex items-center gap-2 rounded-sm bg-foreground px-4 py-1.5 text-xs font-bold font-sans uppercase tracking-widest text-background hover:bg-muted hover:text-foreground border border-foreground transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {querying ? (
-                            <RiLoader4Line className="animate-spin" size={16} />
+                            <RiLoader4Line className="animate-spin" size={14} />
                         ) : (
-                            <RiSearchLine size={16} />
+                            <RiSearchLine size={14} />
                         )}
-                        Query
+                        Execute
                     </button>
 
-                    <span className="text-xs text-zinc-500 self-center ml-auto">
-                        {records.length} record{records.length !== 1 ? 's' : ''} loaded
+                    <span className="text-[10px] text-muted-foreground self-center ml-auto uppercase tracking-widest font-sans">
+                        ROWS_FETCHED: {records.length}
                     </span>
                 </div>
 
-                {/* Chart */}
-                <div className="mb-8">
-                    <TelemetryChart records={records} />
-                </div>
+                <div className="flex flex-col lg:flex-row gap-4 flex-1">
+                    {/* Object explorer / left pane */}
+                    <div className="lg:w-2/3 flex flex-col gap-4">
+                        {/* Chart */}
+                        <div className="border border-border rounded-sm bg-background p-1">
+                            <TelemetryChart records={records} />
+                        </div>
 
-                {/* Table */}
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-zinc-800 text-zinc-400 text-xs uppercase tracking-wider">
-                                    <th className="text-left px-4 py-3 font-medium">Timestamp</th>
-                                    <th className="text-right px-4 py-3 font-medium">Lat</th>
-                                    <th className="text-right px-4 py-3 font-medium">Lng</th>
-                                    <th className="text-right px-4 py-3 font-medium">Obs Left</th>
-                                    <th className="text-right px-4 py-3 font-medium">Obs Right</th>
-                                    <th className="text-right px-4 py-3 font-medium">WP Index</th>
-                                    <th className="text-center px-4 py-3 font-medium">Autopilot</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-800/50">
-                                {records.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="px-4 py-12 text-center text-zinc-500">
-                                            No records. Select a date range and click Query.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    records.map((r) => (
-                                        <tr key={r.id} className="hover:bg-zinc-800/30 transition-colors">
-                                            <td className="px-4 py-2.5 text-zinc-300 font-mono text-xs whitespace-nowrap">
-                                                {formatTime(r.recorded_at)}
-                                            </td>
-                                            <td className="px-4 py-2.5 text-right font-mono text-zinc-200">
-                                                {r.raw.lat?.toFixed(6) ?? '—'}
-                                            </td>
-                                            <td className="px-4 py-2.5 text-right font-mono text-zinc-200">
-                                                {r.raw.lng?.toFixed(6) ?? '—'}
-                                            </td>
-                                            <td className="px-4 py-2.5 text-right font-mono text-amber-400">
-                                                {r.raw.obstacle_left ?? '—'}
-                                            </td>
-                                            <td className="px-4 py-2.5 text-right font-mono text-red-400">
-                                                {r.raw.obstacle_right ?? '—'}
-                                            </td>
-                                            <td className="px-4 py-2.5 text-right font-mono text-zinc-300">
-                                                {r.raw.waypoint_index ?? '—'}
-                                            </td>
-                                            <td className="px-4 py-2.5 text-center">
-                                                {r.raw.autopilot_active === true ? (
-                                                    <span className="text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded text-xs font-medium">ON</span>
-                                                ) : r.raw.autopilot_active === false ? (
-                                                    <span className="text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded text-xs font-medium">OFF</span>
-                                                ) : (
-                                                    <span className="text-zinc-600">—</span>
-                                                )}
-                                            </td>
+                        {/* Table */}
+                        <div className="rounded-sm border border-border bg-background overflow-hidden flex-1 flex flex-col">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-xs text-left">
+                                    <thead className="bg-muted/30">
+                                        <tr className="border-b border-border text-foreground font-sans uppercase tracking-widest text-[10px]">
+                                            <th className="px-4 py-2 font-bold">Timestamp</th>
+                                            <th className="px-4 py-2 font-bold text-right">Lat</th>
+                                            <th className="px-4 py-2 font-bold text-right">Lng</th>
+                                            <th className="px-4 py-2 font-bold text-right">Obs (L)</th>
+                                            <th className="px-4 py-2 font-bold text-right">Obs (R)</th>
+                                            <th className="px-4 py-2 font-bold text-right">WP_IDX</th>
+                                            <th className="px-4 py-2 font-bold text-center">Auto</th>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-border/50">
+                                        {records.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground uppercase tracking-widest text-[10px] font-sans">
+                                                    No records in time parameter
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            records.map((r) => (
+                                                <tr key={r.id} className="hover:bg-muted/50 transition-colors">
+                                                    <td className="px-4 py-2 whitespace-nowrap text-muted-foreground">
+                                                        {formatTime(r.recorded_at)}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-right">
+                                                        {r.raw.lat?.toFixed(6) ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-right">
+                                                        {r.raw.lng?.toFixed(6) ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-right">
+                                                        {r.raw.obstacle_left ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-right">
+                                                        {r.raw.obstacle_right ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-right">
+                                                        {r.raw.waypoint_index ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center">
+                                                        {r.raw.autopilot_active === true ? (
+                                                            <span className="text-background bg-foreground px-1.5 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-widest font-sans">ON</span>
+                                                        ) : r.raw.autopilot_active === false ? (
+                                                            <span className="text-muted-foreground border border-border px-1.5 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-widest font-sans bg-muted/50">OFF</span>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">—</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Pagination */}
+                            {nextCursor && (
+                                <div className="border-t border-border px-4 py-2 flex justify-center bg-muted/30">
+                                    <button
+                                        onClick={() => fetchTelemetry(nextCursor)}
+                                        disabled={loadingMore}
+                                        className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-foreground hover:text-muted-foreground disabled:text-muted-foreground transition-colors font-sans"
+                                    >
+                                        {loadingMore ? (
+                                            <RiLoader4Line className="animate-spin" size={14} />
+                                        ) : (
+                                            <RiArrowRightLine size={14} />
+                                        )}
+                                        Fetch Next Chunk
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Pagination */}
-                    {nextCursor && (
-                        <div className="border-t border-zinc-800 px-4 py-3 flex justify-center">
-                            <button
-                                onClick={() => fetchTelemetry(nextCursor)}
-                                disabled={loadingMore}
-                                className="flex items-center gap-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 disabled:text-zinc-600 transition-colors"
-                            >
-                                {loadingMore ? (
-                                    <RiLoader4Line className="animate-spin" size={16} />
-                                ) : (
-                                    <RiArrowRightLine size={16} />
-                                )}
-                                Load More
-                            </button>
+                    <div className="lg:w-1/3 flex flex-col gap-4">
+                        {/* Optional right panel for logs or raw viewer, empty for now but keeps layout balanced */}
+                        <div className="flex-1 rounded-sm border border-border bg-background p-4 flex items-center justify-center text-muted-foreground text-[10px] uppercase font-sans tracking-widest">
+                            System Terminal // Idle
                         </div>
-                    )}
+                    </div>
                 </div>
             </main>
         </div>

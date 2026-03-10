@@ -27,44 +27,44 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-zinc-50 flex flex-col items-center justify-center p-6 selection:bg-indigo-500/30">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(79,70,229,0.1),transparent)]" />
+        <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 lg:p-6 selection:bg-foreground selection:text-background font-mono">
 
-            <div className="w-full max-w-sm relative z-10 border border-zinc-800 bg-zinc-950 p-8 rounded-2xl shadow-2xl">
-                <div className="flex items-center gap-3 mb-8">
-                    <div className="flex bg-indigo-500/10 text-indigo-400 p-2 rounded-lg">
-                        <RiRobot2Line size={24} />
+            <div className="w-full max-w-sm relative z-10 border border-border bg-background p-6 rounded-sm">
+                <div className="flex flex-col gap-1 mb-6 border-b border-border pb-4">
+                    <div className="flex items-center gap-2 text-foreground mb-2">
+                        <RiRobot2Line size={18} />
+                        <h1 className="text-sm font-bold tracking-widest uppercase font-sans">SPEDI_CONSOLE</h1>
                     </div>
-                    <h1 className="text-xl font-medium tracking-tight">SPEDI Console</h1>
+                    <p className="text-[10px] text-muted-foreground uppercase font-sans tracking-widest">Provide credentials to access</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-medium text-zinc-400">Email Address</label>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Email Address</label>
                         <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                            className="w-full bg-background border border-border rounded-sm px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground focus:ring-1 focus:ring-foreground transition-all"
                             required
                             autoFocus
                         />
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-medium text-zinc-400">Security Key</label>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Security Key</label>
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                            className="w-full bg-background border border-border rounded-sm px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground focus:ring-1 focus:ring-foreground transition-all"
                             required
                         />
                     </div>
 
                     {error && (
-                        <div className="flex items-center gap-2 text-xs text-red-400 bg-red-400/10 border border-red-400/20 p-2.5 rounded-lg mt-2">
-                            <RiErrorWarningLine size={16} />
+                        <div className="flex items-center gap-2 text-[10px] text-background bg-foreground border border-foreground p-2 rounded-sm mt-2 uppercase tracking-wide font-bold">
+                            <RiErrorWarningLine size={14} />
                             <span>{error}</span>
                         </div>
                     )}
@@ -72,14 +72,14 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-zinc-950 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="mt-4 flex items-center justify-center gap-2 rounded-sm bg-foreground px-4 py-2 text-xs font-bold font-sans uppercase tracking-widest text-background hover:bg-muted hover:text-foreground border border-foreground transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {loading ? <RiLoader4Line className="animate-spin" size={16} /> : "Authenticate"}
+                        {loading ? <RiLoader4Line className="animate-spin" size={14} /> : "Authenticate >>"}
                     </button>
                 </form>
             </div>
 
-            <p className="mt-8 text-xs text-zinc-500 z-10">Unauthorized access is strictly prohibited.</p>
+            <p className="mt-8 text-[10px] text-muted-foreground z-10 uppercase tracking-widest font-sans">Unauthorized access is strictly prohibited || AC_LOGGED</p>
         </div>
     );
 }

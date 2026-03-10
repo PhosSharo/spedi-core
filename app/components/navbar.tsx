@@ -14,62 +14,62 @@ export function Navbar({ user, onLogout }: NavbarProps) {
     const pathname = usePathname();
 
     return (
-        <nav className="border-b border-zinc-800 bg-zinc-900/50 p-4 px-6 flex items-center justify-between">
-            <div className="flex items-center gap-8">
-                <div className="flex items-center gap-2 font-medium cursor-pointer" onClick={() => router.push('/')}>
-                    <div className="bg-indigo-500/10 text-indigo-400 p-1.5 rounded-md">
-                        <RiRobot2Line size={20} />
+        <nav className="border-b bg-background px-4 py-2 flex items-center justify-between text-xs font-sans uppercase tracking-wider">
+            <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2 font-bold cursor-pointer" onClick={() => router.push('/')}>
+                    <div className="border p-1 rounded-sm bg-muted text-muted-foreground">
+                        <RiRobot2Line size={14} />
                     </div>
-                    SPEDI Platform
+                    <span>SPEDI_TERM</span>
                 </div>
 
                 <div className="flex items-center gap-1">
                     <button
                         onClick={() => router.push('/')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${pathname === '/' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-400 hover:text-zinc-200'
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-sm transition-colors ${pathname === '/' ? 'bg-foreground text-background font-bold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                             }`}
                     >
-                        <RiDashboard3Line size={16} />
+                        <RiDashboard3Line size={14} />
                         Dashboard
                     </button>
                     <button
                         onClick={() => router.push('/telemetry')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${pathname === '/telemetry' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-400 hover:text-zinc-200'
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-sm transition-colors ${pathname === '/telemetry' ? 'bg-foreground text-background font-bold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                             }`}
                     >
-                        <RiLineChartLine size={16} />
+                        <RiLineChartLine size={14} />
                         Telemetry
                     </button>
                     <button
                         onClick={() => router.push('/testing')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${pathname === '/testing' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-400 hover:text-zinc-200'
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-sm transition-colors ${pathname === '/testing' ? 'bg-foreground text-background font-bold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                             }`}
                     >
-                        <RiTestTubeLine size={16} />
+                        <RiTestTubeLine size={14} />
                         Testing
                     </button>
                     <button
                         onClick={() => router.push('/docs')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${pathname === '/docs' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-400 hover:text-zinc-200'
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-sm transition-colors ${pathname === '/docs' ? 'bg-foreground text-background font-bold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                             }`}
                     >
-                        <RiBookOpenLine size={16} />
+                        <RiBookOpenLine size={14} />
                         Docs
                     </button>
                 </div>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
                 <SessionIndicator />
 
-                <div className="h-4 w-px bg-zinc-800" />
+                <div className="h-3 w-px bg-border" />
 
-                <div className="flex items-center gap-4 text-sm">
-                    <span className="text-zinc-400 font-mono flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                    <span className="text-muted-foreground font-mono flex items-center gap-2 lowercase tracking-normal">
                         {user?.email}
                         {user?.is_superuser && (
-                            <span className="text-emerald-400 font-sans font-medium bg-emerald-400/10 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
-                                Superuser
+                            <span className="font-sans font-bold bg-foreground text-background px-1.5 py-0.5 rounded-sm uppercase tracking-widest text-[9px]">
+                                SU
                             </span>
                         )}
                     </span>
@@ -77,17 +77,17 @@ export function Navbar({ user, onLogout }: NavbarProps) {
                     {user?.is_superuser && (
                         <button
                             onClick={() => router.push('/config')}
-                            className="px-3 py-1.5 text-zinc-400 hover:text-indigo-400 transition-colors text-xs font-medium border border-zinc-800 rounded-md hover:border-indigo-500/30 hover:bg-indigo-500/5"
+                            className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors border rounded-sm hover:bg-muted"
                         >
-                            Config
+                            SYS_CFG
                         </button>
                     )}
 
                     <button
                         onClick={onLogout}
-                        className="flex items-center gap-1.5 text-zinc-400 hover:text-red-400 transition-colors pl-2"
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors pl-1"
                     >
-                        <RiLogoutBoxRLine size={16} /> Logout
+                        <RiLogoutBoxRLine size={14} /> EXIT
                     </button>
                 </div>
             </div>

@@ -110,99 +110,99 @@ export function TelemetryPanel() {
     const notInt = (n: number) => n % 1 !== 0;
 
     return (
-        <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/50 overflow-hidden flex flex-col">
+        <div className="w-full flex flex-col border border-border bg-background rounded-sm">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-zinc-800 p-4 px-6 bg-zinc-900/80">
+            <div className="flex items-center justify-between border-b border-border p-3 px-4 bg-muted/30">
                 <div className="flex items-center gap-3">
-                    <div className={`h-2.5 w-2.5 rounded-full ${deviceStatus === 'online' ? 'bg-emerald-500 animate-pulse' :
-                        deviceStatus === 'offline' ? 'bg-red-500' : 'bg-zinc-600'
+                    <div className={`h-2 w-2 rounded-sm ${deviceStatus === 'online' ? 'bg-foreground animate-pulse' :
+                        deviceStatus === 'offline' ? 'bg-foreground/30' : 'bg-muted-foreground'
                         }`} />
-                    <h3 className="text-sm font-semibold text-zinc-200">Live Telemetry</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-foreground font-sans">Telemetry_Stream</h3>
                 </div>
 
-                <div className="flex items-center gap-3 text-xs">
+                <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-widest">
                     {connectionState === 'connecting' && (
-                        <span className="flex items-center gap-1.5 text-amber-400">
-                            <RiRefreshLine size={14} className="animate-spin" />
-                            Connecting Stream...
+                        <span className="flex items-center gap-1.5 text-muted-foreground">
+                            <RiRefreshLine size={12} className="animate-spin" />
+                            Establishing...
                         </span>
                     )}
                     {connectionState === 'disconnected' && (
-                        <span className="flex items-center gap-1.5 text-red-400">
-                            <RiWifiOffLine size={14} />
-                            Stream Offline
+                        <span className="flex items-center gap-1.5 text-foreground">
+                            <RiWifiOffLine size={12} />
+                            Offline
                         </span>
                     )}
                     {connectionState === 'connected' && (
-                        <span className="text-zinc-500 flex flex-col items-end leading-none">
-                            <span>SSE Active</span>
+                        <span className="text-foreground flex items-center gap-1.5 font-bold">
+                            SSE_ACTIVE
                         </span>
                     )}
                 </div>
             </div>
 
             {/* Dashboard Grid */}
-            <div className="p-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-border grid grid-cols-2 lg:grid-cols-4 gap-px">
                 {/* GPS */}
-                <div className="rounded-lg border border-zinc-800 bg-black/40 p-4 flex flex-col gap-1 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 text-indigo-400">
-                        <RiMapPinLine size={48} />
+                <div className="bg-background p-4 flex flex-col gap-1 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-foreground">
+                        <RiMapPinLine size={80} />
                     </div>
-                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Position</span>
-                    <div className="flex items-baseline gap-1 mt-1 font-mono">
-                        <span className="text-lg text-zinc-200">{formatValue(telemetry?.lat)}</span>
-                        <span className="text-zinc-600 text-xs">LAT</span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Position</span>
+                    <div className="flex items-baseline gap-1 mt-3 font-mono">
+                        <span className="text-xl text-foreground font-medium">{formatValue(telemetry?.lat)}</span>
+                        <span className="text-muted-foreground text-xs">LAT</span>
                     </div>
                     <div className="flex items-baseline gap-1 font-mono">
-                        <span className="text-lg text-zinc-200">{formatValue(telemetry?.lng)}</span>
-                        <span className="text-zinc-600 text-xs">LNG</span>
+                        <span className="text-xl text-foreground font-medium">{formatValue(telemetry?.lng)}</span>
+                        <span className="text-muted-foreground text-xs">LNG</span>
                     </div>
                 </div>
 
                 {/* Sonar */}
-                <div className="rounded-lg border border-zinc-800 bg-black/40 p-4 flex flex-col gap-1 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 text-emerald-400">
-                        <RiRadarLine size={48} />
+                <div className="bg-background p-4 flex flex-col gap-1 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-foreground">
+                        <RiRadarLine size={80} />
                     </div>
-                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Obstacle Sensors</span>
-                    <div className="flex items-baseline gap-2 mt-1">
-                        <span className="text-zinc-500 text-xs font-mono w-4">L</span>
-                        <span className="text-lg text-zinc-200 font-mono">{formatValue(telemetry?.obstacle_left, 'cm')}</span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Obstacle Sensors</span>
+                    <div className="flex items-baseline gap-2 mt-3">
+                        <span className="text-muted-foreground text-[10px] font-mono w-4">L</span>
+                        <span className="text-xl text-foreground font-medium font-mono">{formatValue(telemetry?.obstacle_left, 'cm')}</span>
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <span className="text-zinc-500 text-xs font-mono w-4">R</span>
-                        <span className="text-lg text-zinc-200 font-mono">{formatValue(telemetry?.obstacle_right, 'cm')}</span>
+                        <span className="text-muted-foreground text-[10px] font-mono w-4">R</span>
+                        <span className="text-xl text-foreground font-medium font-mono">{formatValue(telemetry?.obstacle_right, 'cm')}</span>
                     </div>
                 </div>
 
                 {/* Mode */}
-                <div className="rounded-lg border border-zinc-800 bg-black/40 p-4 flex flex-col gap-1 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 text-amber-400">
-                        <RiSteering2Line size={48} />
+                <div className="bg-background p-4 flex flex-col gap-1 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-foreground">
+                        <RiSteering2Line size={80} />
                     </div>
-                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Vehicle Mode</span>
-                    <div className="mt-2 text-2xl font-bold capitalize text-zinc-100">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Vehicle Mode</span>
+                    <div className="mt-3 text-2xl font-mono uppercase font-bold text-foreground">
                         {telemetry?.mode || 'Unknown'}
                     </div>
-                    <div className="mt-auto text-xs text-zinc-500">
-                        Wpt Index: <span className="font-mono text-zinc-300">{formatValue(telemetry?.waypoint_index)}</span>
+                    <div className="mt-auto pt-2 text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+                        Wpt Index: <span className="text-foreground">{formatValue(telemetry?.waypoint_index)}</span>
                     </div>
                 </div>
 
                 {/* Smart Move */}
-                <div className="rounded-lg border border-zinc-800 bg-black/40 p-4 flex flex-col gap-1 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 text-rose-400">
-                        <RiCarLine size={48} />
+                <div className="bg-background p-4 flex flex-col gap-1 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-foreground">
+                        <RiCarLine size={80} />
                     </div>
-                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Smart Move</span>
-                    <div className="mt-2 flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${telemetry?.smart_move_active ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 'bg-zinc-700'}`} />
-                        <span className={`text-lg font-medium ${telemetry?.smart_move_active ? 'text-rose-400' : 'text-zinc-500'}`}>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Smart Move</span>
+                    <div className="mt-3 flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-sm border ${telemetry?.smart_move_active ? 'bg-foreground border-foreground animate-pulse' : 'bg-transparent border-muted-foreground'}`} />
+                        <span className={`text-xl font-mono font-bold uppercase ${telemetry?.smart_move_active ? 'text-foreground' : 'text-muted-foreground'}`}>
                             {formatValue(telemetry?.smart_move_active)}
                         </span>
                     </div>
-                    <p className="mt-auto text-xs text-zinc-600 leading-tight">
-                        When active, device overrides all commands for obstacle avoidance.
+                    <p className="mt-auto pt-2 text-[10px] text-muted-foreground leading-tight font-sans uppercase">
+                        Override active upon detection
                     </p>
                 </div>
             </div>

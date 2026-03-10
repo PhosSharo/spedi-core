@@ -116,92 +116,92 @@ export default function ConfigManager() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-black flex flex-col gap-4 items-center justify-center text-zinc-500">
-                <RiLoader4Line className="animate-spin" size={32} />
-                <p className="text-sm font-medium tracking-tight">Loading Config Manager...</p>
+            <div className="min-h-screen bg-background flex flex-col gap-4 items-center justify-center text-muted-foreground">
+                <RiLoader4Line className="animate-spin" size={24} />
+                <p className="text-[10px] uppercase font-mono tracking-widest">SYS_INIT :: VERIFY_CREDENTIALS</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-indigo-500/30">
+        <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-foreground selection:text-background font-mono">
             {/* Navigation */}
-            <nav className="border-b border-zinc-800 bg-zinc-900/50 p-4 px-6 flex items-center justify-between">
+            <nav className="border-b border-border bg-background px-4 py-2 flex items-center justify-between text-xs font-sans uppercase tracking-wider">
                 <div className="flex items-center gap-6">
                     <button
                         onClick={() => router.push('/')}
-                        className="flex items-center gap-2 font-medium hover:text-indigo-400 transition-colors"
+                        className="flex items-center gap-2 font-bold hover:text-foreground hover:bg-muted px-2 py-1 rounded-sm transition-colors text-muted-foreground"
                     >
-                        <div className="bg-indigo-500/10 text-indigo-400 p-1.5 rounded-md">
-                            <RiRobot2Line size={20} />
-                        </div>
-                        SPEDI Platform
+                        <RiRobot2Line size={14} />
+                        SPEDI_TERM
                     </button>
-                    <div className="h-4 w-px bg-zinc-800"></div>
-                    <div className="flex items-center gap-2 text-zinc-300 font-medium">
-                        <RiSettings4Line size={18} className="text-emerald-400" />
-                        Config Manager
+                    <div className="h-3 w-px bg-border"></div>
+                    <div className="flex items-center gap-2 text-foreground font-bold px-2 py-1 bg-muted rounded-sm border border-border">
+                        <RiSettings4Line size={14} />
+                        SYS_CFG
                     </div>
                 </div>
-                <div className="flex items-center gap-4 text-sm">
-                    <span className="text-zinc-400 font-mono">
+                <div className="flex items-center gap-4 text-xs mt-0">
+                    <span className="text-muted-foreground font-mono flex items-center gap-2 lowercase tracking-normal">
                         {user?.email}
-                        <span className="ml-2 text-emerald-400 font-sans font-medium bg-emerald-400/10 px-2 py-0.5 rounded">Superuser</span>
+                        <span className="font-sans font-bold bg-foreground text-background px-1.5 py-0.5 rounded-sm uppercase tracking-widest text-[9px]">SU</span>
                     </span>
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-1.5 text-zinc-400 hover:text-red-400 transition-colors"
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors pl-1"
                     >
-                        <RiLogoutBoxRLine size={16} /> Logout
+                        <RiLogoutBoxRLine size={14} /> EXIT
                     </button>
                 </div>
             </nav>
 
-            <main className="container mx-auto max-w-6xl px-6 py-12">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold tracking-tight">System Configuration</h1>
-                    <p className="mt-2 text-zinc-400">Manage global system parameters and environmental settings.</p>
+            <main className="flex-1 p-4 lg:p-6 flex flex-col gap-4 mx-auto w-full max-w-7xl">
+                <div className="border-b border-border pb-4 flex items-end justify-between">
+                    <div>
+                        <h1 className="text-lg font-bold tracking-widest uppercase font-sans text-foreground">System_Configuration //</h1>
+                        <p className="text-[10px] text-muted-foreground mt-1 uppercase font-sans tracking-widest">Manage global system parameters and environmental settings.</p>
+                    </div>
                 </div>
 
                 {error && (
-                    <div className="mb-6 rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-400 text-sm flex items-center gap-2">
-                        <RiCloseLine size={18} />
+                    <div className="rounded-sm bg-foreground text-background border border-foreground p-3 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 font-sans">
+                        <RiCloseLine size={16} />
                         {error}
                     </div>
                 )}
 
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-zinc-800/50 text-zinc-400 text-xs uppercase tracking-wider">
+                <div className="rounded-sm border border-border bg-background flex-1 flex flex-col">
+                    <div className="overflow-x-auto rounded-sm">
+                        <table className="w-full text-left text-xs">
+                            <thead className="bg-muted/30 text-foreground text-[10px] uppercase tracking-widest font-sans border-b border-border">
                                 <tr>
-                                    <th className="px-6 py-4 font-medium">Key</th>
-                                    <th className="px-6 py-4 font-medium">Value</th>
-                                    <th className="px-6 py-4 font-medium">Description</th>
-                                    <th className="px-6 py-4 font-medium">Last Updated</th>
-                                    <th className="px-6 py-4 font-medium text-right">Actions</th>
+                                    <th className="px-4 py-3 font-bold">Key</th>
+                                    <th className="px-4 py-3 font-bold">Value</th>
+                                    <th className="px-4 py-3 font-bold">Description</th>
+                                    <th className="px-4 py-3 font-bold">Last Updated</th>
+                                    <th className="px-4 py-3 font-bold text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-zinc-800/50">
+                            <tbody className="divide-y divide-border/50">
                                 {configData.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">
+                                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground uppercase tracking-widest font-sans text-[10px]">
                                             No configuration keys found.
                                         </td>
                                     </tr>
                                 ) : (
                                     configData.map((row) => (
-                                        <tr key={row.key} className="hover:bg-zinc-800/20 transition-colors group">
-                                            <td className="px-6 py-4 font-mono text-emerald-400/90 whitespace-nowrap">
+                                        <tr key={row.key} className="hover:bg-muted/50 transition-colors group">
+                                            <td className="px-4 py-3 font-mono text-foreground font-bold whitespace-nowrap">
                                                 {row.key}
                                             </td>
-                                            <td className="px-6 py-4 font-mono max-w-xs truncate">
+                                            <td className="px-4 py-3 font-mono max-w-xs truncate">
                                                 {editingKey === row.key ? (
                                                     <input
                                                         type="text"
                                                         value={editValue}
                                                         onChange={(e) => setEditValue(e.target.value)}
-                                                        className="w-full bg-zinc-950 border border-indigo-500/50 rounded px-3 py-1.5 text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                        className="w-full bg-background border border-foreground rounded-sm px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                                                         autoFocus
                                                         disabled={saving}
                                                         onKeyDown={(e) => {
@@ -210,42 +210,42 @@ export default function ConfigManager() {
                                                         }}
                                                     />
                                                 ) : (
-                                                    <span className="text-zinc-300">{row.value}</span>
+                                                    <span className="text-muted-foreground">{row.value}</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 text-zinc-500 max-w-sm">
-                                                {row.description || <span className="italic opacity-50">No description</span>}
+                                            <td className="px-4 py-3 text-muted-foreground text-[10px] uppercase font-sans tracking-wide max-w-sm">
+                                                {row.description || <span className="italic opacity-50">NULL</span>}
                                             </td>
-                                            <td className="px-6 py-4 text-zinc-500 text-xs whitespace-nowrap">
+                                            <td className="px-4 py-3 text-muted-foreground text-[10px] uppercase font-sans tracking-widest whitespace-nowrap">
                                                 {new Date(row.updated_at).toLocaleString()}
                                             </td>
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-4 py-3 text-right">
                                                 {editingKey === row.key ? (
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button
                                                             onClick={() => handleSave(row.key)}
                                                             disabled={saving}
-                                                            className="p-1.5 text-emerald-400 hover:bg-emerald-400/10 rounded transition-colors disabled:opacity-50"
+                                                            className="p-1 text-background bg-foreground hover:bg-muted-foreground rounded-sm transition-colors disabled:opacity-50 border border-foreground"
                                                             title="Save"
                                                         >
-                                                            {saving ? <RiLoader4Line className="animate-spin" size={18} /> : <RiSave3Line size={18} />}
+                                                            {saving ? <RiLoader4Line className="animate-spin" size={16} /> : <RiSave3Line size={16} />}
                                                         </button>
                                                         <button
                                                             onClick={handleEditCancel}
                                                             disabled={saving}
-                                                            className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded transition-colors disabled:opacity-50"
+                                                            className="p-1 text-foreground hover:text-background hover:bg-foreground rounded-sm transition-colors disabled:opacity-50 border border-border"
                                                             title="Cancel"
                                                         >
-                                                            <RiCloseLine size={18} />
+                                                            <RiCloseLine size={16} />
                                                         </button>
                                                     </div>
                                                 ) : (
                                                     <button
                                                         onClick={() => handleEditStart(row)}
-                                                        className="p-1.5 text-zinc-500 hover:text-indigo-400 bg-transparent rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                        className="p-1 text-muted-foreground hover:text-foreground bg-transparent rounded-sm transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                                                         title="Edit Value"
                                                     >
-                                                        <RiEdit2Line size={18} />
+                                                        <RiEdit2Line size={16} />
                                                     </button>
                                                 )}
                                             </td>

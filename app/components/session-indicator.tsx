@@ -62,27 +62,27 @@ export function SessionIndicator() {
 
     if (!session) {
         return (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-800/50 border border-zinc-700/50 text-zinc-500 text-xs font-medium">
-                <RiRadioButtonLine size={14} className="text-zinc-600" />
-                Session: Idle
+            <div className="flex items-center gap-2 px-2 py-1 rounded-sm border bg-muted text-muted-foreground text-[10px] font-mono uppercase tracking-widest leading-none">
+                <RiRadioButtonLine size={12} />
+                Idle
             </div>
         );
     }
 
     return (
-        <div className="flex items-center gap-3 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium animate-in fade-in slide-in-from-top-1 duration-500">
-            <div className="flex items-center gap-1.5">
-                <RiRadioButtonLine size={14} className="text-emerald-500 animate-pulse" />
-                <span>Active Session</span>
+        <div className="flex items-center gap-3 px-2 py-1 rounded-sm border bg-foreground text-background text-[10px] font-mono uppercase tracking-widest leading-none animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-1.5 font-bold">
+                <RiRadioButtonLine size={12} className="animate-pulse" />
+                <span>LINK_ESTABLISHED</span>
             </div>
-            <div className="h-3 w-[1px] bg-emerald-500/20" />
-            <div className="flex items-center gap-1.5 text-emerald-500/80">
-                <RiUser3Line size={14} />
-                <span className="font-mono">{session.userId.slice(0, 8)}...</span>
+            <div className="h-3 w-px bg-background/30" />
+            <div className="flex items-center gap-1.5 opacity-90">
+                <RiUser3Line size={12} />
+                <span>{session.userId.slice(0, 8)}...</span>
             </div>
-            <div className="h-3 w-[1px] bg-emerald-500/20" />
-            <div className="flex items-center gap-1.5 text-emerald-500/80">
-                <RiTimeLine size={14} />
+            <div className="h-3 w-px bg-background/30" />
+            <div className="flex items-center gap-1.5 opacity-90">
+                <RiTimeLine size={12} />
                 <span>{new Date(session.connectedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
         </div>

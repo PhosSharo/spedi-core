@@ -156,107 +156,106 @@ function JoystickSimulator({ devices }: { devices: Device[] }) {
     }, []);
 
     return (
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6">
-            <div className="flex items-center gap-3 mb-6">
-                <div className="bg-violet-500/10 text-violet-400 p-2 rounded-lg">
-                    <RiGamepadLine size={20} />
+        <div className="rounded-sm border border-border bg-background p-4 flex flex-col h-full">
+            <div className="flex items-center gap-3 mb-4 border-b border-border pb-3">
+                <div className="bg-foreground text-background p-1.5 rounded-sm">
+                    <RiGamepadLine size={16} />
                 </div>
                 <div>
-                    <h2 className="text-lg font-semibold text-zinc-100">Joystick Simulator</h2>
-                    <p className="text-xs text-zinc-500">Open session → WS connect → send joystick commands</p>
+                    <h2 className="text-xs font-bold tracking-widest uppercase font-sans text-foreground">Joystick_Simulator</h2>
                 </div>
                 <div className="ml-auto flex items-center gap-2">
                     {wsConnected ? (
-                        <span className="flex items-center gap-1.5 text-emerald-400 text-xs font-medium">
-                            <RiWifiLine size={14} /> Connected
+                        <span className="flex items-center gap-1.5 text-foreground text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm border border-foreground/30 bg-foreground/5">
+                            <RiWifiLine size={12} /> Connected
                         </span>
                     ) : (
-                        <span className="flex items-center gap-1.5 text-zinc-500 text-xs font-medium">
-                            <RiWifiOffLine size={14} /> Disconnected
+                        <span className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm border border-border bg-muted/30">
+                            <RiWifiOffLine size={12} /> Disconnected
                         </span>
                     )}
                 </div>
             </div>
 
             {/* Device + Session Controls */}
-            <div className="flex flex-wrap items-end gap-3 mb-6">
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Device</label>
+            <div className="flex wrap items-end gap-3 mb-4 bg-muted/30 p-3 rounded-sm border border-border">
+                <div className="flex flex-col gap-1 flex-1">
+                    <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Target_Device</label>
                     <select
                         value={deviceId}
                         onChange={(e) => setDeviceId(e.target.value)}
                         disabled={sessionActive}
-                        className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-violet-500/50 disabled:opacity-50"
+                        className="bg-background border border-border rounded-sm px-2 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:border-foreground disabled:opacity-50"
                     >
                         {devices.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                 </div>
 
                 {!sessionActive ? (
-                    <button onClick={openSession} className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm">
-                        <RiPlayLine size={16} /> Open Session
+                    <button onClick={openSession} className="flex items-center justify-center gap-2 bg-foreground hover:bg-muted-foreground text-background font-bold px-4 py-1.5 rounded-sm transition-colors text-[10px] uppercase tracking-widest font-sans">
+                        <RiPlayLine size={14} /> Open_Session
                     </button>
                 ) : (
-                    <button onClick={closeSession} className="flex items-center gap-2 bg-red-600/80 hover:bg-red-500 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm">
-                        <RiStopLine size={16} /> Close Session
+                    <button onClick={closeSession} className="flex items-center justify-center gap-2 bg-background border border-foreground hover:bg-foreground hover:text-background text-foreground font-bold px-4 py-1.5 rounded-sm transition-colors text-[10px] uppercase tracking-widest font-sans">
+                        <RiStopLine size={14} /> Close_Session
                     </button>
                 )}
             </div>
 
             {/* Joystick Controls */}
             {wsConnected && (
-                <div className="mb-6">
-                    <div className="grid grid-cols-2 gap-6">
+                <div className="mb-4">
+                    <div className="grid grid-cols-2 gap-4">
                         {/* Sliders */}
-                        <div className="space-y-4">
+                        <div className="space-y-4 bg-muted/20 p-3 rounded-sm border border-border">
                             <div>
-                                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider flex justify-between">
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex justify-between font-sans">
                                     <span>Throttle</span>
-                                    <span className="text-indigo-400 font-mono">{throttle}</span>
+                                    <span className="text-foreground font-mono">{throttle}</span>
                                 </label>
                                 <input
                                     type="range" min={-100} max={100} value={throttle}
                                     onChange={(e) => setThrottle(parseInt(e.target.value))}
-                                    className="w-full mt-1 accent-indigo-500"
+                                    className="w-full mt-2 accent-foreground h-1 bg-border rounded-none appearance-none cursor-pointer"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider flex justify-between">
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex justify-between font-sans">
                                     <span>Steering</span>
-                                    <span className="text-indigo-400 font-mono">{steering}</span>
+                                    <span className="text-foreground font-mono">{steering}</span>
                                 </label>
                                 <input
                                     type="range" min={-100} max={100} value={steering}
                                     onChange={(e) => setSteering(parseInt(e.target.value))}
-                                    className="w-full mt-1 accent-indigo-500"
+                                    className="w-full mt-2 accent-foreground h-1 bg-border rounded-none appearance-none cursor-pointer"
                                 />
                             </div>
                         </div>
 
                         {/* D-pad + actions */}
-                        <div className="flex flex-col items-center gap-3">
-                            <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Arrow keys or click</p>
+                        <div className="flex flex-col items-center gap-3 bg-muted/20 p-3 rounded-sm border border-border">
+                            <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-sans font-bold">D-PAD_INPUT</p>
                             <div className="grid grid-cols-3 gap-1">
                                 <div />
-                                <button onClick={() => setThrottle(prev => Math.min(prev + 10, 100))} className="bg-zinc-800 hover:bg-zinc-700 p-2 rounded-lg transition-colors"><RiArrowUpLine size={16} className="text-zinc-300" /></button>
+                                <button onClick={() => setThrottle(prev => Math.min(prev + 10, 100))} className="bg-background border border-border hover:bg-muted p-2 rounded-sm transition-colors text-foreground flex items-center justify-center"><RiArrowUpLine size={14} /></button>
                                 <div />
-                                <button onClick={() => setSteering(prev => Math.max(prev - 10, -100))} className="bg-zinc-800 hover:bg-zinc-700 p-2 rounded-lg transition-colors"><RiArrowLeftLine size={16} className="text-zinc-300" /></button>
-                                <button onClick={() => { setThrottle(0); setSteering(0); }} className="bg-zinc-800 hover:bg-zinc-700 p-2 rounded-lg transition-colors"><RiStopCircleLine size={16} className="text-red-400" /></button>
-                                <button onClick={() => setSteering(prev => Math.min(prev + 10, 100))} className="bg-zinc-800 hover:bg-zinc-700 p-2 rounded-lg transition-colors"><RiArrowRightLine size={16} className="text-zinc-300" /></button>
+                                <button onClick={() => setSteering(prev => Math.max(prev - 10, -100))} className="bg-background border border-border hover:bg-muted p-2 rounded-sm transition-colors text-foreground flex items-center justify-center"><RiArrowLeftLine size={14} /></button>
+                                <button onClick={() => { setThrottle(0); setSteering(0); }} className="bg-background border border-foreground hover:bg-foreground hover:text-background p-2 rounded-sm transition-colors text-foreground flex items-center justify-center"><RiStopCircleLine size={14} /></button>
+                                <button onClick={() => setSteering(prev => Math.min(prev + 10, 100))} className="bg-background border border-border hover:bg-muted p-2 rounded-sm transition-colors text-foreground flex items-center justify-center"><RiArrowRightLine size={14} /></button>
                                 <div />
-                                <button onClick={() => setThrottle(prev => Math.max(prev - 10, -100))} className="bg-zinc-800 hover:bg-zinc-700 p-2 rounded-lg transition-colors"><RiArrowDownLine size={16} className="text-zinc-300" /></button>
+                                <button onClick={() => setThrottle(prev => Math.max(prev - 10, -100))} className="bg-background border border-border hover:bg-muted p-2 rounded-sm transition-colors text-foreground flex items-center justify-center"><RiArrowDownLine size={14} /></button>
                                 <div />
                             </div>
 
-                            <div className="flex gap-2 mt-2">
-                                <button onClick={sendCommand} className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
-                                    Send Once
+                            <div className="flex gap-2 mt-auto w-full">
+                                <button onClick={sendCommand} className="flex-1 bg-background border border-foreground hover:bg-foreground hover:text-background text-foreground text-[10px] font-bold px-2 py-1.5 rounded-sm transition-colors uppercase tracking-widest font-sans">
+                                    Tx_Once
                                 </button>
                                 <button
                                     onClick={intervalRef.current ? stopContinuous : startContinuous}
-                                    className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${intervalRef.current ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-200'}`}
+                                    className={`flex-1 text-[10px] font-bold px-2 py-1.5 rounded-sm transition-colors uppercase tracking-widest font-sans border ${intervalRef.current ? 'bg-foreground border-foreground text-background' : 'bg-background border-border hover:border-foreground text-foreground'}`}
                                 >
-                                    {intervalRef.current ? 'Stop Stream' : 'Stream'}
+                                    {intervalRef.current ? 'Halt_Tx' : 'Stream_Tx'}
                                 </button>
                             </div>
                         </div>
@@ -265,9 +264,9 @@ function JoystickSimulator({ devices }: { devices: Device[] }) {
             )}
 
             {/* Log */}
-            <div className="bg-black/50 rounded-xl border border-zinc-800 p-3 max-h-40 overflow-y-auto font-mono text-[11px] text-zinc-400 space-y-0.5">
+            <div className="mt-auto bg-muted/10 border-t border-border p-3 max-h-40 overflow-y-auto font-mono text-[9px] text-muted-foreground space-y-0.5 leading-tight">
                 {log.length === 0 ? (
-                    <p className="text-zinc-600">Event log will appear here...</p>
+                    <p className="opacity-50 font-sans uppercase tracking-widest text-[9px] font-bold">Event log will appear here...</p>
                 ) : log.map((l, i) => <p key={i}>{l}</p>)}
             </div>
         </div>
@@ -381,107 +380,106 @@ function PathSimulator({ devices }: { devices: Device[] }) {
     const statusBadge = (status: string | null) => {
         if (!status) return null;
         const colors: Record<string, string> = {
-            draft: 'bg-zinc-700 text-zinc-300',
-            active: 'bg-emerald-500/10 text-emerald-400',
-            completed: 'bg-indigo-500/10 text-indigo-400',
-            aborted: 'bg-red-500/10 text-red-400',
+            draft: 'bg-muted text-muted-foreground border-border',
+            active: 'bg-foreground/10 text-foreground border-foreground/30',
+            completed: 'bg-muted/50 text-foreground border-border',
+            aborted: 'bg-muted text-foreground border-foreground',
         };
-        return <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[status] || 'bg-zinc-700 text-zinc-300'}`}>{status}</span>;
+        return <span className={`px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-widest border ${colors[status] || 'bg-muted text-muted-foreground border-border'}`}>{status}</span>;
     };
 
     return (
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6">
-            <div className="flex items-center gap-3 mb-6">
-                <div className="bg-amber-500/10 text-amber-400 p-2 rounded-lg">
-                    <RiRouteLine size={20} />
+        <div className="rounded-sm border border-border bg-background p-4 flex flex-col h-full">
+            <div className="flex items-center gap-3 mb-4 border-b border-border pb-3">
+                <div className="bg-foreground text-background p-1.5 rounded-sm">
+                    <RiRouteLine size={16} />
                 </div>
                 <div>
-                    <h2 className="text-lg font-semibold text-zinc-100">Path Simulator</h2>
-                    <p className="text-xs text-zinc-500">Create route → dispatch → monitor status</p>
+                    <h2 className="text-xs font-bold tracking-widest uppercase font-sans text-foreground">Path_Simulator</h2>
                 </div>
                 {routeId && (
-                    <div className="ml-auto flex items-center gap-2 text-xs">
-                        <span className="text-zinc-500 font-mono">{routeId.slice(0, 8)}...</span>
+                    <div className="ml-auto flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest">
+                        <span className="text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded-sm border border-border">{routeId.slice(0, 8)}...</span>
                         {statusBadge(routeStatus)}
                     </div>
                 )}
             </div>
 
-            <div className="grid grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-2 gap-4 mb-4 flex-1">
                 {/* Left: Form */}
-                <div className="space-y-4">
+                <div className="space-y-4 bg-muted/20 p-3 rounded-sm border border-border flex flex-col">
                     <div className="flex gap-3">
                         <div className="flex flex-col gap-1 flex-1">
-                            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Device</label>
+                            <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Target_Device</label>
                             <select
                                 value={deviceId}
                                 onChange={(e) => setDeviceId(e.target.value)}
-                                className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                className="bg-background border border-border rounded-sm px-2 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:border-foreground"
                             >
                                 {devices.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                             </select>
                         </div>
                         <div className="flex flex-col gap-1 flex-1">
-                            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Route Name</label>
+                            <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Route_Name</label>
                             <input
                                 type="text"
                                 value={routeName}
                                 onChange={(e) => setRouteName(e.target.value)}
-                                className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                className="bg-background border border-border rounded-sm px-2 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:border-foreground"
                             />
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Waypoints (JSON)</label>
+                    <div className="flex flex-col gap-1 flex-1">
+                        <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest font-sans">Waypoints_JSON</label>
                         <textarea
                             value={waypointsText}
                             onChange={(e) => setWaypointsText(e.target.value)}
-                            rows={6}
-                            className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
+                            className="bg-background border border-border rounded-sm px-2 py-1.5 text-[10px] text-foreground font-mono focus:outline-none focus:border-foreground resize-none flex-1 min-h-[120px]"
                             spellCheck={false}
                         />
                     </div>
                 </div>
 
                 {/* Right: Actions */}
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2 bg-muted/20 p-3 rounded-sm border border-border">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-sans font-bold mb-1">EXECUTION_CONTROLS</p>
                     <button
                         onClick={createRoute}
                         disabled={busy}
-                        className="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium px-4 py-2.5 rounded-lg transition-colors text-sm"
+                        className="flex items-center justify-center gap-2 bg-foreground hover:bg-muted-foreground disabled:bg-muted disabled:text-muted-foreground text-background font-bold px-3 py-2 rounded-sm transition-colors text-[10px] uppercase tracking-widest font-sans"
                     >
-                        {busy ? <RiLoader4Line className="animate-spin" size={16} /> : <RiPlayLine size={16} />}
-                        Create Route
+                        {busy ? <RiLoader4Line className="animate-spin" size={14} /> : <RiPlayLine size={14} />}
+                        Create_Route
                     </button>
                     <button
                         onClick={dispatchRoute}
                         disabled={busy || !routeId || routeStatus === 'active'}
-                        className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium px-4 py-2.5 rounded-lg transition-colors text-sm"
+                        className="flex items-center justify-center gap-2 bg-background border border-foreground hover:bg-foreground hover:text-background disabled:border-border disabled:text-muted-foreground disabled:bg-muted text-foreground font-bold px-3 py-2 rounded-sm transition-colors text-[10px] uppercase tracking-widest font-sans"
                     >
-                        🚀 Dispatch Route
+                        🚀 Dispatch_Route
                     </button>
                     <button
                         onClick={abortRoute}
                         disabled={busy || routeStatus !== 'active'}
-                        className="flex items-center justify-center gap-2 bg-red-600/80 hover:bg-red-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium px-4 py-2.5 rounded-lg transition-colors text-sm"
+                        className="flex items-center justify-center gap-2 bg-background border border-foreground hover:bg-foreground hover:text-background disabled:border-border disabled:text-muted-foreground disabled:bg-muted text-foreground font-bold px-3 py-2 rounded-sm transition-colors text-[10px] uppercase tracking-widest font-sans mt-auto"
                     >
-                        <RiStopLine size={16} /> Abort Route
+                        <RiStopLine size={14} /> Abort_Route
                     </button>
                     <button
                         onClick={deleteRoute}
                         disabled={busy || !routeId || routeStatus !== 'draft'}
-                        className="flex items-center justify-center gap-2 bg-zinc-700 hover:bg-zinc-600 disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-200 font-medium px-4 py-2.5 rounded-lg transition-colors text-sm"
+                        className="flex items-center justify-center gap-2 bg-muted hover:bg-muted-foreground disabled:bg-muted/50 disabled:text-muted-foreground text-foreground border border-border font-bold px-3 py-2 rounded-sm transition-colors text-[10px] uppercase tracking-widest font-sans"
                     >
-                        🗑️ Delete Draft
+                        🗑️ Delete_Draft
                     </button>
                 </div>
             </div>
 
             {/* Log */}
-            <div className="bg-black/50 rounded-xl border border-zinc-800 p-3 max-h-40 overflow-y-auto font-mono text-[11px] text-zinc-400 space-y-0.5">
+            <div className="mt-auto bg-muted/10 border-t border-border p-3 max-h-40 overflow-y-auto font-mono text-[9px] text-muted-foreground space-y-0.5 leading-tight">
                 {log.length === 0 ? (
-                    <p className="text-zinc-600">Event log will appear here...</p>
+                    <p className="opacity-50 font-sans uppercase tracking-widest text-[9px] font-bold">Event log will appear here...</p>
                 ) : log.map((l, i) => <p key={i}>{l}</p>)}
             </div>
         </div>
@@ -571,79 +569,79 @@ export default function TestingPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-black flex flex-col gap-4 items-center justify-center text-zinc-500">
-                <RiLoader4Line className="animate-spin" size={32} />
-                <p className="text-sm font-medium tracking-tight">Verifying credentials...</p>
+            <div className="min-h-screen bg-background flex flex-col gap-4 items-center justify-center text-muted-foreground">
+                <RiLoader4Line className="animate-spin" size={24} />
+                <p className="text-[10px] uppercase font-mono tracking-widest">SYS_INIT :: VERIFY_CREDENTIALS</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-indigo-500/30">
+        <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-foreground selection:text-background font-mono">
             <Navbar user={user} onLogout={handleLogout} />
 
-            <main className="container mx-auto max-w-7xl px-6 py-10">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold tracking-tight text-zinc-100">Testing Utilities</h1>
-                    <p className="text-zinc-400 mt-1">Simulate joystick input and autonomous path dispatch against real API endpoints.</p>
+            <main className="flex-1 p-4 lg:p-6 flex flex-col gap-4">
+                <div className="border-b border-border pb-4 flex items-end justify-between">
+                    <div>
+                        <h1 className="text-lg font-bold tracking-widest uppercase font-sans text-foreground">Testing_Utilities //</h1>
+                        <p className="text-[10px] text-muted-foreground mt-1 uppercase font-sans tracking-widest">Simulate joystick input and autonomous path dispatch against real API endpoints.</p>
+                    </div>
                 </div>
 
                 {devices.length === 0 ? (
-                    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-12 text-center">
-                        <div className="bg-violet-500/10 text-violet-400 p-4 rounded-2xl inline-block mb-4">
-                            <RiGamepadLine size={32} />
+                    <div className="rounded-sm border border-border bg-background p-12 text-center">
+                        <div className="bg-foreground text-background p-3 rounded-sm inline-block mb-4 border border-foreground">
+                            <RiGamepadLine size={24} />
                         </div>
-                        <h2 className="text-xl font-semibold text-zinc-100 mb-2">No devices registered</h2>
-                        <p className="text-zinc-400 mb-6 max-w-md mx-auto">
-                            Create a test device to start experimenting with the joystick and path simulators. Test devices are safe to remove later.
+                        <h2 className="text-sm font-bold tracking-widest uppercase font-sans text-foreground mb-2">No devices registered</h2>
+                        <p className="text-[10px] text-muted-foreground mb-6 max-w-md mx-auto uppercase font-sans tracking-widest">
+                            Create a test device to start experimenting. Test devices are safe to remove later.
                         </p>
                         <button
                             onClick={createTestDevice}
                             disabled={creatingDevice}
-                            className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium px-6 py-3 rounded-xl transition-colors text-sm"
+                            className="inline-flex items-center gap-2 bg-foreground hover:bg-muted-foreground disabled:bg-muted disabled:text-muted-foreground text-background font-bold px-4 py-2 rounded-sm transition-colors text-xs uppercase tracking-widest font-sans"
                         >
-                            {creatingDevice ? <RiLoader4Line className="animate-spin" size={18} /> : <RiGamepadLine size={18} />}
+                            {creatingDevice ? <RiLoader4Line className="animate-spin" size={16} /> : <RiGamepadLine size={16} />}
                             {creatingDevice ? 'Creating...' : 'Create Test Device'}
                         </button>
                     </div>
                 ) : (
-                    <>
+                    <div className="flex flex-col gap-4 flex-1">
                         {/* Device management bar */}
-                        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 mb-8">
-                            <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">Registered Devices</h3>
+                        <div className="rounded-sm border border-border bg-background p-3 flex flex-wrap gap-2 items-center">
+                            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mr-4 font-sans">Registered Devices</h3>
+                            {devices.map(d => (
+                                <div key={d.id} className="flex items-center gap-2 bg-muted border border-border rounded-sm px-2 py-1 text-xs">
+                                    <span className="text-foreground font-bold">{d.name}</span>
+                                    <span className="text-muted-foreground font-mono text-[10px] bg-background px-1 rounded-sm">{d.id.slice(0, 8)}</span>
+                                    <button
+                                        onClick={() => deleteDevice(d.id, d.name)}
+                                        disabled={deletingId === d.id}
+                                        className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 ml-1"
+                                        title="Delete device"
+                                    >
+                                        {deletingId === d.id ? <RiLoader4Line className="animate-spin" size={12} /> : <RiDeleteBinLine size={12} />}
+                                    </button>
+                                </div>
+                            ))}
+                            <div className="ml-auto">
                                 <button
                                     onClick={createTestDevice}
                                     disabled={creatingDevice}
-                                    className="inline-flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                                    className="inline-flex items-center gap-1.5 bg-foreground hover:bg-muted-foreground disabled:bg-muted disabled:text-muted-foreground text-background text-[10px] font-bold px-2 py-1 rounded-sm transition-colors uppercase tracking-widest font-sans"
                                 >
-                                    {creatingDevice ? <RiLoader4Line className="animate-spin" size={14} /> : <RiAddLine size={14} />}
-                                    Add Test Device
+                                    {creatingDevice ? <RiLoader4Line className="animate-spin" size={12} /> : <RiAddLine size={12} />}
+                                    Add Device
                                 </button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {devices.map(d => (
-                                    <div key={d.id} className="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2 text-sm">
-                                        <span className="text-zinc-200">{d.name}</span>
-                                        <span className="text-zinc-600 font-mono text-[10px]">{d.id.slice(0, 8)}</span>
-                                        <button
-                                            onClick={() => deleteDevice(d.id, d.name)}
-                                            disabled={deletingId === d.id}
-                                            className="text-zinc-500 hover:text-red-400 transition-colors disabled:opacity-50 ml-1"
-                                            title="Delete device"
-                                        >
-                                            {deletingId === d.id ? <RiLoader4Line className="animate-spin" size={14} /> : <RiDeleteBinLine size={14} />}
-                                        </button>
-                                    </div>
-                                ))}
                             </div>
                         </div>
 
-                        <div className="grid gap-8 lg:grid-cols-1">
+                        <div className="grid gap-4 lg:grid-cols-2 flex-1">
                             <JoystickSimulator devices={devices} />
                             <PathSimulator devices={devices} />
                         </div>
-                    </>
+                    </div>
                 )}
             </main>
         </div>

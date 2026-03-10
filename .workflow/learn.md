@@ -89,3 +89,55 @@ Standard Windows PowerShell (5.1) does not support '&&' or '||' for logical comm
 ### ? Fix / Workaround
 Use ';' to separate commands (e.g., 'git add .; git commit') or upgrade to PowerShell 7+ if chaining logic is strictly required.
 
+---
+
+## Next.js Proxy Removal — 2026-03-10
+
+### ❌ What Failed
+Using `next.config.mjs` rewrites as an API proxy for the Railway backend.
+
+### 🔍 Why It Failed
+The proxy obscured the real connection status and introduced complexity when syncing Supabase auth states between the client and the proxy layer. It also made debugging CORS and WebSocket connections significantly harder.
+
+### ✅ Fix / Workaround
+Killed the proxy. Frontend now calls the Railway API directly. This requires `@fastify/cors` to be configured on the backend to allow the Vercel origin.
+
+---
+
+## Railway Build Failures — `noEmit: true` — 2026-03-10
+
+### ❌ What Failed
+Railway deployments crashed because the `dist/` directory was empty after "successful" builds.
+
+### 🔍 Why It Failed
+Next.js requires `noEmit: true` in the main `tsconfig.json`. When Railway runs `npx tsc`, it obeys this flag and produces zero JavaScript files. `node dist/server.js` then fails because the file doesn't exist.
+
+### ✅ Fix / Workaround
+Created `tsconfig.build.json` specifically for the backend that sets `noEmit: false` and excludes the `app/` directory. Updated `railway.json` to use `npx tsc -p tsconfig.build.json`.
+
+---
+
+## SSE / WebSocket Authentication — 2026-03-10
+
+### ❌ What Failed
+The `/events` (SSE) endpoint returned 401 Unauthorized even with a valid token.
+
+### 🔍 Why It Failed
+Browser APIs for `EventSource` (SSE) and `WebSocket` do not support setting custom HTTP headers (like `Authorization`). The backend auth plugin was only looking at headers.
+
+### ✅ Fix / Workaround
+Updated the Fastify auth plugin to check for a `token` query parameter as a fallback if the `Authorization` header is missing.
+`const token = request.headers.authorization?.split(' ')[1] || (request.query as any).token;`
+
+---
+
+## Fastify CORS — `strictPreflight` — 2026-03-10
+
+### ❌ What Failed
+`DELETE` requests were blocked by CORS policy on Vercel, even with `DELETE` in the allowed methods list.
+
+### 🔍 Why It Failed
+`@fastify/cors` defaults to `strictPreflight: true`. This causes Fastify to strictly match the `OPTIONS` preflight request against the router. For dynamic routes like `/devices/:id`, it often fails to match correctly or strips methods it doesn't think apply, returning only `GET,HEAD,POST`.
+
+### ✅ Fix / Workaround
+Set `strictPreflight: false` in the CORS registration. This forces Fastify to return the full list of configured `methods` for any preflight request.

@@ -185,3 +185,42 @@ Implemented a defensive fallback ID in the frontend parser:
 `newLog.id = newLog.id || `fallback-id-${Date.now()}-${Math.random()}`;`
 This ensures every event is treated as unique unless a real, stable ID is provided by the server.
 
+---
+
+## Fastify AJV Strict Mode — `example` vs `examples` — 2026-03-11
+
+### ❌ What Failed
+Backend server crashed on startup with `strict mode: unknown keyword: "example"` error when loading route schemas.
+
+### 🔍 Why It Failed
+Fastify v5 uses a strict JSON schema validator by default. In OpenAPI 3.0/3.1, `example` is a common but technically non-standard keyword in specific contexts (standard is `examples` as an array). Strict mode rejects unknown keywords to prevent silent schema drift.
+
+### ✅ Fix / Workaround
+Set `ajv: { customOptions: { strict: false } }` in the Fastify constructor. This allows the system to boot even if legacy or strictly "OpenAPI-only" keywords like `example` are present in the developer-friendly schemas.
+
+---
+
+## Remote Device "Silent Connection Drop" — 2026-03-11
+
+### ❌ What Failed
+System Activity panel remained empty and Route commands failed when accessing the dashboard from a mobile phone or another PC on the same LAN, even though it worked on the host PC.
+
+### 🔍 Why It Failed
+The `NEXT_PUBLIC_API_URL` was hardcoded to `127.0.0.1`. When a browser on a phone loads the JS, it attempts to connect to `127.0.0.1` — which is the phone's own loopback. Since the backend isn't running *on the phone*, the connection is refused silently.
+
+### ✅ Fix / Workaround
+Implemented `resolveApiUrl()` in `lib/api.ts`. It detects the browser's `window.location.hostname`. If the dashboard is accessed via a network IP, it dynamically rewrites the API base URL to match that IP, ensuring remote browsers point to the correct server host.
+
+---
+
+## Conditional Content-Type for Fetch — 2026-03-11
+
+### ❌ What Failed
+`POST /routes/:id/start` returned 400 Bad Request when sent without a body.
+
+### 🔍 Why It Failed
+Forcing `Content-Type: application/json` on a fetch request with a `null` or `undefined` body triggers many modern server parsers (including Fastify) to expect a valid JSON string (at least `""` or `{}`). If the body is physically absent but the header is present, it's flagged as an invalid/empty JSON request.
+
+### ✅ Fix / Workaround
+Updated `apiFetch` to only attach the `Content-Type` header if an actual `string` body is provided in the options.
+

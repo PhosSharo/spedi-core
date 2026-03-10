@@ -271,3 +271,13 @@
 > Implemented defensive fallback UUIDs in `system-activity.tsx` to handle legacy or malformed SSE events.
 > Added property fallback rendering (level, source, message) to prevent UI crashes on incomplete log metadata.
 > Injected `logService.info` triggers into `DeviceService` control paths to ensure activity is visible.
+
+50 | FIX     | Fastify Schema Strict Mode & Empty Body Tolerance
+> Rewrote Fastify JSON content-type parser to consume payload streams and return `{}` for empty inputs, preventing `FST_ERR_CTP_EMPTY_JSON_BODY`.
+> Configured `ajv.customOptions.strict: false` in `server.ts` to allow standard OpenAPI `example` keywords without crashing the startup validator.
+> Modified `apiFetch` to conditionally omit `Content-Type` headers for empty bodies.
+
+51 | FIX     | Dynamic API Host Resolution for Remote LAN Testing
+> Implemented `resolveApiUrl()` in `lib/api.ts` to dynamically replace `127.0.0.1` with `window.location.hostname`.
+> Fixes "Silent SSE Drop" where mobile phones or remote laptops testing the dashboard would try to connect to their own loopback instead of the host server.
+> Restored visibility of System Activity logs and stable Route command execution for all network clients.

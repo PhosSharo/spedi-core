@@ -45,7 +45,8 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             onClick={handleOverlayClick}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
         >
-            <div className="w-full max-w-md bg-background border border-foreground rounded-sm flex flex-col shadow-2xl">
+            <div className="w-full max-w-md bg-background border border-foreground rounded-sm flex flex-col shadow-2xl crt-terminal">
+                <div className="scanline"></div>
                 <div className="flex items-center justify-between p-3 border-b border-border">
                     <h2 className="text-[10px] uppercase tracking-widest font-sans font-bold text-foreground">
                         {title}

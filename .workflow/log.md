@@ -91,6 +91,13 @@
 > Added comprehensive JSON examples to `Telemetry`, `Users`, `Config`, and `Routes` schemas.
 > Ensured the API reference is self-documenting and mirrors the manual guides.
 
+44 | FEAT    | Simulation & Styling Fixes
+> Fixed Mosquitto container permission warnings for `passwd` and `acl` files.
+> Implemented "Premium Terminal" aesthetics in `Modal` component with CRT scanline and glow effects.
+> Fixed "Not Found" error during telemetry simulation by refactoring `apiFetch` in `SystemActivity` for robust absolute URL handling.
+> Enhanced `apiFetch` utility with default `Content-Type: application/json` handling.
+> Polished `SystemActivity` log stream and pre-fill button aesthetics.
+
 16 | FEAT    | Implemented Dashboard Config Manager Page
 > Created /config route in Next.js App Router for configuration management.
 > Implemented superuser protection and automatic redirect for unauthorized users.

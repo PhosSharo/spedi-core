@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { getToken } from '@/lib/auth-store';
-import { getApiUrl } from '@/lib/api';
 import { RiTerminalBoxLine, RiFilter3Line, RiTestTubeLine } from '@remixicon/react';
+import { apiFetch, getApiUrl } from '@/lib/api';
+import { getToken } from '@/lib/auth-store';
 import { Modal } from './modal';
 
 export type LogSource = 'arduino' | 'mobile' | 'system';
@@ -108,14 +108,9 @@ export function SystemActivity() {
     const handleSimulate = async () => {
         try {
             setIsSimulating(true);
-            const token = getToken();
             const parsedPayload = JSON.parse(simulatePayload);
-            const res = await fetch(`${getApiUrl()}/debug/telemetry`, {
+            const res = await apiFetch('/debug/telemetry', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({
                     topic: simulateTopic,
                     payload: parsedPayload
@@ -127,6 +122,7 @@ export function SystemActivity() {
                 throw new Error(data.error || 'Failed to send');
             }
 
+            // Success! The log will come back via SSE, but let's close.
             setIsSimulateModalOpen(false);
         } catch (err: any) {
             alert(`Simulation failed: ${err.message}`);
@@ -225,22 +221,22 @@ export function SystemActivity() {
                     </div>
                 ) : (
                     filteredLogs.map(log => (
-                        <div key={log.id} className="flex flex-col gap-1 text-[11px] font-mono">
+                        <div key={log.id} className="flex flex-col gap-1 text-[11px] font-mono group">
                             <div
-                                className="flex items-start gap-2 cursor-pointer hover:bg-white/5 p-1 rounded-sm transition-colors"
+                                className="flex items-start gap-2 cursor-pointer hover:bg-white/5 p-1 rounded-sm transition-all border border-transparent hover:border-white/10"
                                 onClick={() => toggleExpand(log.id)}
                             >
-                                <span className="text-muted-foreground whitespace-nowrap opacity-50">
+                                <span className="text-muted-foreground whitespace-nowrap opacity-40 group-hover:opacity-70">
                                     {new Date(log.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                 </span>
                                 <span className="text-[9px] mt-[2px] opacity-75">{getLevelIcon(log.level)}</span>
-                                <span className={`uppercase tracking-widest px-1.5 py-0.5 rounded-sm border ${getSourceColor(log.source)}`}>
+                                <span className={`uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-[9px] font-sans font-bold ${getSourceColor(log.source)}`}>
                                     {log.source.substring(0, 3)}
                                 </span>
-                                <span className="text-foreground/70 uppercase tracking-widest w-16 shrink-0">
+                                <span className="text-foreground/50 uppercase tracking-[2px] text-[9px] w-16 shrink-0 mt-[2px] font-sans font-bold">
                                     [{log.type}]
                                 </span>
-                                <span className={`text-foreground/90 break-all ${log.level === 'error' ? 'text-red-400' : log.level === 'warn' ? 'text-yellow-400' : ''}`}>
+                                <span className={`text-foreground/90 break-all leading-relaxed ${log.level === 'error' ? 'text-red-400' : log.level === 'warn' ? 'text-yellow-400' : ''}`}>
                                     {log.message}
                                 </span>
                             </div>
@@ -286,10 +282,10 @@ export function SystemActivity() {
                                 <button
                                     key={ex.label}
                                     onClick={() => setSimulatePayload(JSON.stringify(ex.payload, null, 2))}
-                                    className="text-[9px] font-mono px-2 py-1 rounded-sm border border-border hover:border-foreground/50 hover:bg-muted/50 transition-all text-muted-foreground hover:text-foreground"
+                                    className="text-[9px] font-mono px-2 py-1 rounded-sm border border-border bg-muted/5 hover:border-foreground/40 hover:bg-muted/30 transition-all text-muted-foreground/80 hover:text-foreground active:scale-95"
                                     type="button"
                                 >
-                                    [{ex.label}]
+                                    {ex.label} //
                                 </button>
                             ))}
                         </div>

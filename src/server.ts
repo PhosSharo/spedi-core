@@ -11,7 +11,12 @@ import authPlugin from './plugins/auth.plugin';
 import { createClient } from '@supabase/supabase-js';
 
 const fastify = Fastify({
-    logger: true
+    logger: true,
+    ajv: {
+        customOptions: {
+            strict: false
+        }
+    }
 });
 
 // CORS — allow all origins (reflects requester) for Flutter Web and development
@@ -54,19 +59,26 @@ import { routeService } from './services/route.service';
 
 // Intercept application/json to safely handle empty bodies natively without crashing Fastify.
 fastify.removeContentTypeParser('application/json');
-fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body: string, done) {
-    if (!body || body.trim() === '') {
-        done(null, {}); // Tolerate empty body as empty object
-        return;
-    }
-    try {
-        const json = JSON.parse(body);
-        done(null, json);
-    } catch (err: any) {
-        err.statusCode = 400;
-        err.code = 'FST_ERR_CTP_INVALID_JSON_BODY';
-        done(err, undefined);
-    }
+fastify.addContentTypeParser('application/json', function (req, payload, done) {
+    let rawBody = '';
+    payload.on('data', chunk => {
+        rawBody += chunk.toString();
+    });
+    payload.on('end', () => {
+        if (!rawBody || rawBody.trim() === '') {
+            done(null, {}); // Tolerate empty body as empty object
+            return;
+        }
+        try {
+            const json = JSON.parse(rawBody);
+            done(null, json);
+        } catch (err: any) {
+            err.statusCode = 400;
+            err.code = 'FST_ERR_CTP_INVALID_JSON_BODY';
+            done(err, undefined);
+        }
+    });
+    payload.on('error', err => done(err, undefined));
 });
 
 // Register plugins

@@ -253,8 +253,7 @@ export function SystemActivity() {
                             )}
                         </div>
                     ))
-                )
-                }
+                )}
             </div>
 
             {/* Simulate Event Modal */}

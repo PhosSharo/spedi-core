@@ -33,6 +33,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
                     email: { type: 'string', format: 'email', example: 'dev@spedi.io' },
                     password: { type: 'string', minLength: 1, example: 'password' },
                 },
+                example: {
+                    email: 'dev@spedi.io',
+                    password: 'password'
+                }
             },
             response: {
                 200: {

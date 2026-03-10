@@ -16,6 +16,7 @@ interface ConfigRow {
 export default function ConfigManager() {
     const [configData, setConfigData] = useState<ConfigRow[]>([]);
     const [editingKey, setEditingKey] = useState<string | null>(null);
+    const [editKeyString, setEditKeyString] = useState<string>('');
     const [editValue, setEditValue] = useState<string>('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -42,17 +43,19 @@ export default function ConfigManager() {
 
     const handleEditStart = (row: ConfigRow) => {
         setEditingKey(row.key);
+        setEditKeyString(row.key);
         setEditValue(row.value);
         setError(null);
     };
 
     const handleEditCancel = () => {
         setEditingKey(null);
+        setEditKeyString('');
         setEditValue('');
         setError(null);
     };
 
-    const handleSave = async (key: string) => {
+    const handleSave = async (original_key: string) => {
         setSaving(true);
         setError(null);
         setSuccess(null);
@@ -60,7 +63,7 @@ export default function ConfigManager() {
             const res = await apiFetch('/config', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ updates: [{ key, value: editValue }] })
+                body: JSON.stringify({ updates: [{ original_key, key: editKeyString, value: editValue }] })
             });
 
             if (!res.ok) {
@@ -70,8 +73,8 @@ export default function ConfigManager() {
 
             // Update local state with the saved value and fresh timestamp
             setConfigData(prev => prev.map(row =>
-                row.key === key
-                    ? { ...row, value: editValue, updated_at: new Date().toISOString() }
+                row.key === original_key
+                    ? { ...row, key: editKeyString, value: editValue, updated_at: new Date().toISOString() }
                     : row
             ));
 
@@ -136,7 +139,21 @@ export default function ConfigManager() {
                                 configData.map((row) => (
                                     <tr key={row.key} className="hover:bg-muted/50 transition-colors group">
                                         <td className="px-4 py-3 font-mono text-foreground font-bold whitespace-nowrap">
-                                            {row.key}
+                                            {editingKey === row.key ? (
+                                                <input
+                                                    type="text"
+                                                    value={editKeyString}
+                                                    onChange={(e) => setEditKeyString(e.target.value)}
+                                                    className="w-full bg-background border border-foreground rounded-sm px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                                                    disabled={saving}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') handleSave(row.key);
+                                                        if (e.key === 'Escape') handleEditCancel();
+                                                    }}
+                                                />
+                                            ) : (
+                                                row.key
+                                            )}
                                         </td>
                                         <td className="px-4 py-3 font-mono max-w-xs truncate">
                                             {editingKey === row.key ? (

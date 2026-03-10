@@ -269,6 +269,29 @@ export class DeviceService {
     }
 
     /**
+     * Updates an existing device.
+     */
+    async updateDevice(id: string, name?: string, mqttClientId?: string): Promise<DeviceRecord> {
+        const payload: any = {};
+        if (name !== undefined) payload.name = name;
+        if (mqttClientId !== undefined) payload.mqtt_client_id = mqttClientId;
+
+        const { data, error } = await this.supabase
+            .from('devices')
+            .update(payload)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error(`Failed to update device ${id}:`, error);
+            throw error;
+        }
+
+        return data;
+    }
+
+    /**
      * Updates last_seen_at for a device. Async, fire-and-forget.
      */
     updateLastSeen(deviceId: string): void {

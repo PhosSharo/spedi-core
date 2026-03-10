@@ -111,12 +111,18 @@ export function SystemActivity() {
                     <select
                         value={filter}
                         onChange={(e) => setFilter(e.target.value as any)}
-                        className="bg-transparent text-foreground focus:outline-none cursor-pointer"
+                        className="bg-background border border-border text-foreground rounded-sm px-2 py-1 pr-6 focus:border-foreground focus:outline-none transition-colors cursor-pointer text-[10px] uppercase font-sans tracking-widest appearance-none"
+                        style={{
+                            backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fafafa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 0.25rem center',
+                            backgroundSize: '1em'
+                        }}
                     >
-                        <option value="all">ALL_SOURCES</option>
-                        <option value="arduino">ARDUINO_IoT</option>
-                        <option value="mobile">MOBILE_APP</option>
-                        <option value="system">BACKEND_SYS</option>
+                        <option value="all" className="bg-background text-foreground">ALL_SOURCES</option>
+                        <option value="arduino" className="bg-background text-foreground">ARDUINO_IoT</option>
+                        <option value="mobile" className="bg-background text-foreground">MOBILE_APP</option>
+                        <option value="system" className="bg-background text-foreground">BACKEND_SYS</option>
                     </select>
                 </div>
             </div>

@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { configService } from '../services/config.service';
+import { mqttService } from '../services/mqtt.service';
 
 const ErrorResponse = {
     type: 'object',
@@ -67,12 +68,18 @@ export default async function configRoutes(fastify: FastifyInstance) {
                             type: 'object',
                             required: ['key', 'value'],
                             properties: {
+                                original_key: { type: 'string' },
                                 key: { type: 'string' },
                                 value: { type: 'string' },
                             },
                         },
                     },
                 },
+                example: {
+                    updates: [
+                        { key: "telemetry_interval_ms", value: "1000" }
+                    ]
+                }
             },
             response: {
                 200: {
@@ -93,14 +100,17 @@ export default async function configRoutes(fastify: FastifyInstance) {
             return reply.status(403).send({ error: 'Forbidden: Superuser access required' });
         }
 
-        const { updates } = request.body as { updates: { key: string; value: string }[] };
+        const { updates } = request.body as { updates: { original_key?: string; key: string; value: string }[] };
 
         if (!updates || !Array.isArray(updates)) {
             return reply.status(400).send({ error: 'Invalid payload: updates must be an array' });
         }
 
         try {
-            await configService.update(updates, user.id);
+            const result = await configService.update(updates, user.id);
+            if (result.mqttNeedsReload) {
+                mqttService.reload().catch(err => request.log.error(err, 'Failed to reload MQTT service'));
+            }
             return { success: true, reloaded: true };
         } catch (err) {
             request.log.error(err);

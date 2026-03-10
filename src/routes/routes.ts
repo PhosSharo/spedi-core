@@ -114,6 +114,15 @@ const routeRoutes: FastifyPluginAsync = async (fastify) => {
                         ],
                     },
                 },
+                example: {
+                    device_id: '00000000-0000-0000-0000-000000000000',
+                    name: 'Bangkok River Patrol',
+                    waypoints: [
+                        { lat: 13.7563, lng: 100.5018 },
+                        { lat: 13.7570, lng: 100.5025 },
+                        { lat: 13.7580, lng: 100.5030 }
+                    ]
+                }
             },
             response: {
                 201: RouteRecord,

@@ -134,6 +134,10 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
                     name: { type: 'string', example: 'test-boat-01' },
                     mqtt_client_id: { type: 'string', example: 'test-client-01' },
                 },
+                example: {
+                    name: 'test-boat-01',
+                    mqtt_client_id: 'test-client-01'
+                }
             },
             response: {
                 201: DeviceRecord,
@@ -217,6 +221,66 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
             .header('Access-Control-Allow-Credentials', 'true')
             .status(204)
             .send();
+    });
+
+    /**
+     * PUT /devices/:id
+     */
+    fastify.put('/devices/:id', {
+        onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Devices'],
+            summary: 'Update device',
+            description: 'Updates a device\'s name and/or MQTT client ID. Superuser only.',
+            security: [{ BearerAuth: [] }],
+            params: {
+                type: 'object',
+                properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            body: {
+                type: 'object',
+                properties: {
+                    name: { type: 'string', minLength: 1 },
+                    mqtt_client_id: { type: 'string', minLength: 1 },
+                },
+                example: {
+                    name: 'Updated Boat Name',
+                    mqtt_client_id: 'updated-client-id'
+                }
+            },
+            response: {
+                200: DeviceRecord,
+                400: ErrorResponse,
+                403: ErrorResponse,
+                404: ErrorResponse,
+                500: ErrorResponse,
+            },
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const user = request.user;
+        if (!user || !user.is_superuser) {
+            return reply.status(403).send({ error: 'Forbidden: Superuser access required' });
+        }
+
+        const { id } = request.params as { id: string };
+        const { name, mqtt_client_id } = request.body as { name?: string; mqtt_client_id?: string };
+
+        if (!name && !mqtt_client_id) {
+            return reply.status(400).send({ error: 'At least one field (name or mqtt_client_id) must be provided to update' });
+        }
+
+        const device = await deviceService.getDeviceById(id);
+        if (!device) {
+            return reply.status(404).send({ error: 'Device not found' });
+        }
+
+        try {
+            const updated = await deviceService.updateDevice(id, name, mqtt_client_id);
+            return updated;
+        } catch (err) {
+            request.log.error(err);
+            return reply.status(500).send({ error: 'Failed to update device' });
+        }
     });
 
     /**

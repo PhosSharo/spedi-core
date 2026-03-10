@@ -79,6 +79,7 @@ function GuidesTab() {
                     { id: 'mobile-integration', label: 'Mobile Integration' },
                     { id: 'websocket', label: 'WebSocket Control' },
                     { id: 'telemetry', label: 'Telemetry Stream' },
+                    { id: 'deployment', label: 'Deployment & Config' },
                 ].map(item => (
                     <a
                         key={item.id}
@@ -352,6 +353,32 @@ es.onmessage = (event) => {
   console.log(data.type, data.payload);
 };`}</CodeBlock>
                 </GuideSection>
+
+                {/* Deployment & Configuration */}
+                <GuideSection id="deployment" icon={RiServerLine} title="Deployment_&_Configuration">
+                    <p>
+                        The backend and frontend are designed for robust deployment workflows. Configurations are strictly managed via the runtime database to prevent full redeployments for parameter tweaks.
+                    </p>
+
+                    <p className="font-bold text-foreground mt-4">Instant Hot-Reloading</p>
+                    <p className="mb-2">
+                        System configuration values (e.g., MQTT broker settings, telemetry intervals) are stored in the database and loaded into memory. Changes made via the <strong>Dashboard Config Manager</strong> instantly trigger a backend hot-reload. There is <strong>no need</strong> to redeploy the server for these changes to take effect.
+                    </p>
+                    <div className="rounded-sm border border-border p-3 bg-muted/10 flex items-start gap-2 mb-4">
+                        <RiCheckboxCircleLine size={12} className="text-foreground mt-0.5 flex-shrink-0" />
+                        <p><strong>MQTT Reconnection:</strong> If MQTT credentials or topics are modified, the backend automatically tears down the existing broker connection and re-establishes it with the new parameters within seconds.</p>
+                    </div>
+
+                    <p className="font-bold text-foreground">Manual Fallback Deployment</p>
+                    <p>
+                        In the event that automated deployment pipelines (e.g., via GitHub to Vercel/Railway) fail or stall, you can force a manual redeployment. Ensure your local environment is authenticated with the respective CLI tools.
+                    </p>
+                    <CodeBlock lang="bash" title="Terminal">{`# Force deploy backend to Railway
+npx railway up
+
+# Force deploy frontend to Vercel
+npx vercel --prod`}</CodeBlock>
+                </GuideSection>
             </div>
         </div>
     );
@@ -360,7 +387,7 @@ es.onmessage = (event) => {
 // ── API Reference Tab ────────────────────────────────────────────────
 function ReferenceTab({ token }: { token: string | null }) {
     return (
-        <div className="flex-1 flex flex-col overflow-hidden rounded-sm border border-border">
+        <div className="flex-1 flex flex-col overflow-y-auto rounded-sm border border-border">
             <ApiReferenceReact
                 configuration={{
                     url: `${getApiUrl()}/openapi.json`,

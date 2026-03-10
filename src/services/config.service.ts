@@ -52,8 +52,19 @@ export class ConfigService {
      * Updates multiple configuration keys in both the database and memory.
      * Note: Hot-reload notifications are deferred to Phase 8.
      */
-    async update(updates: { key: string; value: string }[], userId: string): Promise<void> {
-        for (const { key, value } of updates) {
+    async update(updates: { original_key?: string; key: string; value: string }[], userId: string): Promise<{ mqttNeedsReload: boolean }> {
+        let mqttNeedsReload = false;
+
+        for (const { original_key, key, value } of updates) {
+            // Drop old key if renaming
+            if (original_key && original_key !== key) {
+                await this.supabase.from('config').delete().eq('key', original_key);
+                this.configMap.delete(original_key);
+                if (original_key.startsWith('mqtt_')) mqttNeedsReload = true;
+            }
+
+            if (key.startsWith('mqtt_')) mqttNeedsReload = true;
+
             const payload = {
                 key,
                 value,
@@ -80,6 +91,8 @@ export class ConfigService {
         }
         console.log(`✅ ConfigService: Updated ${updates.length} keys by user ${userId}.`);
         logService.info('system', 'config', `Configuration updated (${updates.length} keys)`, { keys: updates.map(u => u.key) });
+
+        return { mqttNeedsReload };
     }
 
     /**

@@ -37,6 +37,9 @@ const sessionRoutes: FastifyPluginAsync = async (fastify) => {
                 properties: {
                     device_id: { type: 'string', example: '00000000-0000-0000-0000-000000000000' },
                 },
+                example: {
+                    device_id: '00000000-0000-0000-0000-000000000000'
+                }
             },
             response: {
                 200: ActiveSessionSchema,

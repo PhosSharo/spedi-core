@@ -326,6 +326,15 @@
 > Built `geo-utils` library for bearing, haversine, and route progress computation with full unit test coverage.
 > Verified Next.js production build and SSR compatibility.
 
-61 | FIX     | Tab Toggle Mount/Unmount Regression
+330 | FIX     | Tab Toggle Mount/Unmount Regression
 > Fixed SSE subscription loss caused by conditional rendering (mount/unmount) of SystemActivity and LiveMap on tab toggle.
 > Switched to CSS `hidden` class toggle — both panels stay mounted at all times, preserving subscriptions and accumulated state.
+
+62 | FEAT    | Map Style & Contrast Optimization
+> Replaced the unmaintained OpenFreeMap dark style with a custom `map-style-dark.json` derived from Liberty.
+> Enhanced contrast for water bodies (#0f1c2c) and desaturated background/roads for high-visibility data terminal aesthetic.
+
+63 | FEAT    | Robust Map Initialization (LocalStorage)
+> Removed hardcoded `DEFAULT_CENTER` coordinates.
+> Initial map center resolves via: `localStorage` (last tick) > Shadow state fetch > Region default (Gulf of Thailand).
+> Persists real-time coordinates to `localStorage` on every telemetry pulse.

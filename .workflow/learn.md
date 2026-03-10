@@ -393,3 +393,221 @@ Both components stay mounted, keep their SSE subscriptions active, and preserve 
 
 ### ⚠️ Watch Out
 This applies to any component with side effects (SSE, WebSocket, timers, accumulated state). Never use conditional rendering for "tab" panels if the hidden panel needs to stay alive.
+
+---
+
+## The MapLibre Resize Hidden Bug
+
+### 💥 What Happened
+After fixing the conditional rendering issue above using CSS `hidden`, the MapLibre map appeared garbled or partially rendered in a tiny grid when switching back to the map tab.
+
+### ❌ What Failed
+MapLibre GL JS sets internal dimensions for its WebGL canvas. When its parent container changes to `display: none` (`hidden`), its dimensions become `0x0`. When `display` is restored, it does not automatically detect the new size and remains incorrectly scaled.
+
+Implemented `resolveApiUrl()` in `lib/api.ts`. It detects the browser's `window.location.hostname`. If the dashboard is accessed via a network IP, it dynamically rewrites the API base URL to match that IP, ensuring remote browsers point to the correct server host.
+
+---
+
+## Conditional Content-Type for Fetch — 2026-03-11
+
+### ❌ What Failed
+`POST /routes/:id/start` returned 400 Bad Request when sent without a body.
+
+### 🔍 Why It Failed
+Forcing `Content-Type: application/json` on a fetch request with a `null` or `undefined` body triggers many modern server parsers (including Fastify) to expect a valid JSON string (at least `""` or `{}`). If the body is physically absent but the header is present, it's flagged as an invalid/empty JSON request.
+
+### ✅ Fix / Workaround
+Updated `apiFetch` to only attach the `Content-Type` header if an actual `string` body is provided in the options.
+
+---
+
+## SSE Token Race Condition — 2026-03-11
+
+### ❌ What Failed
+`EventSource` connections in dashboard components were established but never received data, despite valid tokens in the browser.
+
+### 🔍 Why It Failed
+Components were mounting and initializing `new EventSource()` in `useEffect` hooks *before* the `DashboardLayout` had finished restoring the user's JWT from `getCurrentUser()`. The token was `null` at the moment of connection, causing the backend to (correctly) return 401, which `EventSource` doesn't expose clearly.
+
+### ✅ Fix / Workaround
+Implemented a `SseProvider` context in `sse-context.tsx`. This provider is mounted *inside* the auth-verified block of `DashboardLayout`. This guarantees that the SSE connection is only attempted once the token is stable and available.
+
+---
+
+## Redundant SSE / WebSocket Connections — 2026-03-11
+
+### ❌ What Failed
+Opening the dashboard triggered 4+ separate TCP connections to `/events` (System Activity, Telemetry, Session Indicator, Camera).
+
+### 🔍 Why It Failed
+Every component managed its own lifecycle and `EventSource` instance. This wasted server resources and multiplied the "initial state burst" overhead by 4x for every page load.
+
+### ✅ Fix / Workaround
+Unified all SSE consumers into the `SseProvider`. Components now use a simple `useSseEvent(type, callback)` hook to subscribe to the single, shared data stream.
+
+---
+
+## Hot-Path Logging Hygiene — 2026-03-11
+
+### ❌ What Failed
+The System Activity panel was flooded with joystick coordinates, making it impossible to see real system events.
+
+### 🔍 Why It Failed
+`publishJoystick()` called `logService.info()` on every frame (~5-10 times per second). This not only created visual noise but also pushed the 200-slot circular log buffer past its limit every few seconds, deleting older, more critical logs before they could be read.
+
+### ✅ Fix / Workaround
+Strictly removed all logging from performance-critical "hot paths" (Joystick, Route execution). These paths now use in-memory shadow updates only. Higher-level events (Auth, Session start, Route dispatch) remain logged. 
+
+### ⚠️ Watch Out
+Always benchmark the impact of "convenience logging" on high-frequency loops. If it executes more than once per user action, it probably shouldn't be in the persistent syslog.
+---
+
+## SSE CORS Header Suppression — 2026-03-11
+
+### ❌ What Failed
+`EventSource` connections from Vercel to Railway were blocked by CORS, even though the global `@fastify/cors` plugin was configured correctly.
+
+### 🔍 Why It Failed
+The `SseService` used `reply.raw.writeHead(200, ...)` to set `text/event-stream` headers. Using the raw Node.js `writeHead` bypasses Fastify's normal `onSend` and `preSerialization` hooks, including the CORS plugin's header injection. This resulted in a response that had the right content type but was missing `Access-Control-Allow-Origin`.
+
+### ✅ Fix / Workaround
+Explicitly pull existing Fastify headers and merge them into the `writeHead` payload:
+```typescript
+const existingHeaders = reply.getHeaders ? reply.getHeaders() : {};
+reply.raw.writeHead(200, { ...existingHeaders, 'Content-Type': 'text/event-stream', ... });
+```
+
+---
+
+## Extensionless Imports in Production `tsc` — 2026-03-11
+
+### ❌ What Failed
+Railway deployments crashed during the `build:backend` step with `error TS2307: Cannot find module` for test files.
+
+### 🔍 Why It Failed
+Vitest and development environments allow extensionless imports (e.g., `import { sseService } from '../services/sseService'`). However, the production `tsconfig.build.json` uses `moduleResolution: "NodeNext"`, which strictly requires `.js` extensions or specific resolution rules that the test files (located in `src/tests/`) were violating.
+
+### ✅ Fix / Workaround
+Excluded `src/tests` from `tsconfig.build.json`. Test files are for development and CI/CD (Vitest), and do not need to be compiled for the production `dist/` bundle.
+
+---
+
+## SSE Proxy Buffering (Delayed Telemetry) — 2026-03-11
+
+### ❌ What Failed
+The Telemetry Panel and System Activity stream received logs in large delayed bursts, rather than instantaneously, when deployed to Railway.
+
+### 🔍 Why It Failed
+Nginx, Traefik, and Envoy (used by Railway and Vercel) buffer HTTP responses to optimize packet size. Because `text/event-stream` is a continuous infinite response, the proxy buffers the chunks until they reach ~4KB before flushing them to the client. This breaks the real-time nature of SSE.
+
+### ✅ Fix / Workaround
+Added `X-Accel-Buffering: no` to the `reply.raw.writeHead()` headers in `SseService`. This is a standard directive that instructs Nginx and most modern reverse proxies to disable buffering for this specific request and flush bytes immediately.
+
+---
+
+## React `useRef` Stale State on Reconnect — 2026-03-11
+
+### ❌ What Failed
+If the SSE connection dropped and reconnected, the connection showed as `CONNECTED` but telemetry and logs stopped updating completely.
+
+### 🔍 Why It Failed
+The `SseProvider` used `attachedTypesRef.current.add(eventType)` to prevent adding duplicate `addEventListener` calls to the `EventSource`. However, when `connectSSE()` instantiated a *new* `EventSource` on reconnect, it did not `.clear()` the ref! So `attachEventListener` saw the event type was already in the Set and skipped attaching it to the *new* socket.
+
+### ✅ Fix / Workaround
+Added `attachedTypesRef.current.clear()` inside `connectSSE()` right before creating the new `EventSource`.
+
+---
+
+## Selective Logging (Missing API Errors) — 2026-03-11
+
+### ❌ What Failed
+The System Activity panel never displayed HTTP API errors (400 Bad Request, 500 Internal Error, Schema Validation failures).
+
+### 🔍 Why It Failed
+`SystemActivity` only subscribes to the `syslog` SSE stream emitted by `logService`. Fastify's built-in error handler routes all API errors to the user response and console, entirely bypassing `logService`. 
+
+### ✅ Fix / Workaround
+Injected a global Fastify hook: `fastify.addHook('onError', ...)` in `server.ts`. This hook catches all errors right before they are sent to the client and formats them into a `logService.error('system', 'connection', ...)` broadcast, guaranteeing the dashboard sees exactly what failed.
+
+---
+
+## MapLibre GL JS — Dynamic Import & SSR — 2026-03-11
+
+### ❌ What Failed
+`import maplibregl from 'maplibre-gl'` at the top of a React component caused `ReferenceError: window is not defined` during the Next.js build (SSR phase).
+
+### 🔍 Why It Failed
+MapLibre GL JS (and Mapbox) accesses `window` and `document` immediately upon execution to check for WebGL support. Next.js attempts to pre-render every page on the server where these globals don't exist.
+
+### ✅ Fix / Workaround
+Use dynamic imports inside `useEffect` or `next/dynamic` with `{ ssr: false }`.
+In `live-map.tsx`, we used:
+```typescript
+const maplibregl = (await import('maplibre-gl')).default;
+```
+This ensures the library is only loaded on the client.
+
+### ⚠️ Watch Out
+- CSS must also be loaded carefully. Importing `.css` files inside a dynamic block can sometimes be ignored by bundlers or cause TS errors if types aren't found. We moved the MapLibre CSS import to `globals.css` for stability.
+
+---
+
+## Bearing Interpolation — Shortest-Arc — 2026-03-11
+
+### ❌ What Failed
+Linearly interpolating bearing (e.g., `prev + (next - prev) * v`) caused the boat marker to "spin the long way round" (e.g., spinning 358° clockwise to move from 359° to 1°).
+
+### 🔍 Why It Failed
+Standard `lerp` doesn't account for the circular nature of degrees (0-360). 
+
+### ✅ Fix / Workaround
+Implemented `lerpBearing` using the shortest-arc formula:
+```typescript
+let delta = ((to - from + 540) % 360) - 180;
+return ((from + delta * t) + 360) % 360;
+```
+This ensures the marker always takes the smallest rotation distance across the 360/0 degree boundary.
+
+---
+
+## React Conditional Rendering — Tab Panels & SSE Subscriptions — 2026-03-11
+
+### ❌ What Failed
+After adding a tabbed toggle between LiveMap and SystemActivity, both SSE-dependent components stopped receiving events when switched away from and back.
+
+### 🔍 Why It Failed
+Using `{condition ? <A /> : <B />}` in JSX causes React to **unmount** the inactive component entirely. When a component unmounts, its `useEffect` cleanup runs, which unsubscribes from the SSE context. When re-mounted, it starts fresh with empty state and needs to re-subscribe, missing all events that occurred while hidden.
+
+### ✅ Fix / Workaround
+Render **both** components simultaneously and use CSS `hidden` class to control visibility:
+```tsx
+<div className={activePanel === 'A' ? '' : 'hidden'}><A /></div>
+<div className={activePanel === 'B' ? '' : 'hidden'}><B /></div>
+```
+Both components stay mounted, keep their SSE subscriptions active, and preserve accumulated state.
+
+### ⚠️ Watch Out
+This applies to any component with side effects (SSE, WebSocket, timers, accumulated state). Never use conditional rendering for "tab" panels if the hidden panel needs to stay alive.
+
+---
+
+## The MapLibre Resize Hidden Bug
+
+### 💥 What Happened
+After fixing the conditional rendering issue above using CSS `hidden`, the MapLibre map appeared garbled or partially rendered in a tiny grid when switching back to the map tab.
+
+### ❌ What Failed
+MapLibre GL JS sets internal dimensions for its WebGL canvas. When its parent container changes to `display: none` (`hidden`), its dimensions become `0x0`. When `display` is restored, it does not automatically detect the new size and remains incorrectly scaled.
+
+### 🔍 Why It Failed
+WebGL canvas elements don't automatically reflow internal rendering buffers on CSS display changes without a manual trigger or a `ResizeObserver`.
+
+### ✅ Fix / Workaround
+Pass an `isVisible` boolean prop to the map component, and run an effect that calls `map.resize()` whenever `isVisible` becomes true.
+```tsx
+useEffect(() => {
+    if (isVisible && mapRef.current) {
+        mapRef.current.resize();
+    }
+}, [isVisible]);
+```

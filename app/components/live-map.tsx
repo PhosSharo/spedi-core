@@ -59,13 +59,7 @@ export function LiveMap({ isVisible = true }: { isVisible?: boolean }) {
 
     // Trail buffer — accumulates during session/mission, clears on mode→idle
     const trailCoords = useRef<Array<[number, number]>>([]);
-    const trailTimestamps = useRef<Array<number>>([]);
-    const sessionStartTime = useRef<number | null>(null);
     const lastMode = useRef<string | null>(null);
-
-    // deck.gl refs
-    const overlayRef = useRef<any>(null);
-    const tripsLayerClassRef = useRef<any>(null);
 
     // Route state
     const routeWaypoints = useRef<Array<{ lat: number; lng: number }> | null>(null);
@@ -77,14 +71,10 @@ export function LiveMap({ isVisible = true }: { isVisible?: boolean }) {
         let cancelled = false;
 
         (async () => {
-            // Dynamic import — MapLibre and deck.gl need `window`
+            // Dynamic import — MapLibre needs `window`
             const maplibregl = (await import('maplibre-gl')).default;
-            const { MapboxOverlay } = await import('@deck.gl/mapbox');
-            const { TripsLayer } = await import('@deck.gl/geo-layers');
 
             if (cancelled || !mapContainerRef.current) return;
-
-            tripsLayerClassRef.current = TripsLayer;
 
             map = new maplibregl.Map({
                 container: mapContainerRef.current,
@@ -132,13 +122,22 @@ export function LiveMap({ isVisible = true }: { isVisible?: boolean }) {
                     },
                 });
 
-                // ── deck.gl Overlay for TripsLayer ──────────────
-                const overlay = new MapboxOverlay({
-                    interleaved: true,
-                    layers: []
+                // ── Travel trail source + layer ────────────────
+                map.addSource('travel-trail', {
+                    type: 'geojson',
+                    data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {} },
                 });
-                overlayRef.current = overlay;
-                map.addControl(overlay as any);
+
+                map.addLayer({
+                    id: 'travel-trail-layer',
+                    type: 'line',
+                    source: 'travel-trail',
+                    layout: { 'line-join': 'round', 'line-cap': 'round' },
+                    paint: {
+                        'line-color': 'rgba(240,240,240,0.35)',
+                        'line-width': 2,
+                    },
+                });
 
                 // ── Route line source + layers ─────────────────
                 map.addSource('route-line', {
@@ -186,10 +185,11 @@ export function LiveMap({ isVisible = true }: { isVisible?: boolean }) {
                     },
                 });
 
-                // Move route lines below boat marker
-                map.moveLayer('route-line-bg', 'boat-pulse');
-                map.moveLayer('route-line-layer', 'boat-pulse');
-                map.moveLayer('route-waypoints-layer', 'boat-pulse');
+                // Move trail + route below boat marker
+                map.moveLayer('travel-trail-layer', 'boat-pulse');
+                map.moveLayer('route-line-bg', 'travel-trail-layer');
+                map.moveLayer('route-line-layer', 'travel-trail-layer');
+                map.moveLayer('route-waypoints-layer', 'travel-trail-layer');
 
                 setMapLoaded(true);
 
@@ -269,30 +269,6 @@ export function LiveMap({ isVisible = true }: { isVisible?: boolean }) {
                 });
             }
 
-            // Draw deck.gl TripsLayer
-            if (overlayRef.current && tripsLayerClassRef.current && sessionStartTime.current !== null && lastMode.current && lastMode.current !== 'idle') {
-                const currentTime = Date.now() - sessionStartTime.current;
-                const TripsLayer = tripsLayerClassRef.current;
-                
-                overlayRef.current.setProps({
-                    layers: [
-                        new TripsLayer({
-                            id: 'travel-trail',
-                            data: trailCoords.current.length >= 2 ? [{ path: trailCoords.current, timestamps: trailTimestamps.current }] : [],
-                            getPath: (d: any) => d.path,
-                            getTimestamps: (d: any) => d.timestamps,
-                            getColor: [255, 255, 255],
-                            opacity: 0.8,
-                            widthMinPixels: 4,
-                            trailLength: 604800000, // 7 days (never fades out during single mission)
-                            currentTime: currentTime
-                        })
-                    ]
-                });
-            } else if (overlayRef.current) {
-                overlayRef.current.setProps({ layers: [] });
-            }
-
             rafRef.current = requestAnimationFrame(animate);
         };
 
@@ -348,21 +324,15 @@ export function LiveMap({ isVisible = true }: { isVisible?: boolean }) {
 
         // ── Trail clearing on mode→idle ──────────────────────
         const currentMode = payload.mode ?? null;
-        
-        // Start session if transitioning into active mode
-        if (currentMode && currentMode !== 'idle' && (!lastMode.current || lastMode.current === 'idle')) {
-            sessionStartTime.current = Date.now();
-        }
-
         if (lastMode.current && lastMode.current !== 'idle' && currentMode === 'idle') {
             // Session or mission just ended — clear the trail
             trailCoords.current = [];
-            trailTimestamps.current = [];
-            sessionStartTime.current = null;
-            if (overlayRef.current) overlayRef.current.setProps({ layers: [] });
-
             const map = mapRef.current;
             if (map) {
+                const trailSrc = map.getSource('travel-trail') as GeoJSONSource | undefined;
+                if (trailSrc) {
+                    trailSrc.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {} });
+                }
                 // Also clear route progress visualization
                 const routeSrc = map.getSource('route-line') as GeoJSONSource | undefined;
                 if (routeSrc) {
@@ -381,7 +351,19 @@ export function LiveMap({ isVisible = true }: { isVisible?: boolean }) {
         // Add to trail (accumulates during active session/mission, no rolling cap)
         if (currentMode && currentMode !== 'idle') {
             trailCoords.current.push([lng, lat]);
-            trailTimestamps.current.push(sessionStartTime.current ? Date.now() - sessionStartTime.current : 0);
+
+            // Update trail on map
+            const map = mapRef.current;
+            if (map) {
+                const trailSrc = map.getSource('travel-trail') as GeoJSONSource | undefined;
+                if (trailSrc && trailCoords.current.length >= 2) {
+                    trailSrc.setData({
+                        type: 'Feature',
+                        geometry: { type: 'LineString', coordinates: trailCoords.current },
+                        properties: {},
+                    });
+                }
+            }
         }
 
         // Update waypoint index for route progress

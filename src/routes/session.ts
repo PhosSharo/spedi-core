@@ -99,8 +99,12 @@ const sessionRoutes: FastifyPluginAsync = async (fastify) => {
         schema: {
             tags: ['Sessions'],
             summary: 'Close active session',
-            description: 'Closes the active session for the requesting user. Resets desired state to idle and publishes a stop command to the device.',
+            description: 'Closes the active session for the requesting user. Resets desired state to idle and publishes a stop command to the device. Accepts empty bodies.',
             security: [{ BearerAuth: [] }],
+            body: {
+                type: 'object',
+                additionalProperties: true, // explicitly permit empty `{}`
+            },
             response: {
                 200: {
                     type: 'object',

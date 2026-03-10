@@ -52,17 +52,19 @@ import userRoutes from './routes/users';
 import cameraRoutes from './routes/camera';
 import { routeService } from './services/route.service';
 
-// Replace default JSON parser to tolerate empty bodies
+// Intercept application/json to safely handle empty bodies natively without crashing Fastify.
 fastify.removeContentTypeParser('application/json');
 fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body: string, done) {
+    if (!body || body.trim() === '') {
+        done(null, {}); // Tolerate empty body as empty object
+        return;
+    }
     try {
-        if (!body || body.trim() === '') {
-            done(null, {});
-            return;
-        }
-        done(null, JSON.parse(body));
+        const json = JSON.parse(body);
+        done(null, json);
     } catch (err: any) {
         err.statusCode = 400;
+        err.code = 'FST_ERR_CTP_INVALID_JSON_BODY';
         done(err, undefined);
     }
 });

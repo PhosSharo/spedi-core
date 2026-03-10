@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { configService } from './config.service';
+import { logService } from './log.service';
 
 export interface DeviceRecord {
     id: string;
@@ -158,6 +159,7 @@ export class DeviceService {
         if (this.mqtt) {
             this.mqtt.publishJoystick(payload);
         }
+        logService.info('mobile', 'route', `Joystick command dispatched: THR=${payload.throttle} STR=${payload.steering}`, payload);
     }
 
     /**
@@ -168,8 +170,10 @@ export class DeviceService {
     publishRoute(deviceId: string, action: string, waypoints?: Array<{ lat: number; lng: number }>): void {
         if (action === 'start' && waypoints) {
             this.setDesired(deviceId, { mode: 'auto', route: waypoints });
+            logService.info('mobile', 'route', `Autonomous route dispatched (${waypoints.length} wpts)`);
         } else if (action === 'stop') {
             this.resetDesired(deviceId);
+            logService.info('mobile', 'route', 'Route execution aborted by user');
         }
         if (this.mqtt) {
             this.mqtt.publishRoute(action, waypoints);

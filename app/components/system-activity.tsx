@@ -44,7 +44,11 @@ export function SystemActivity() {
             sse.addEventListener('syslog', (e) => {
                 try {
                     const data = JSON.parse(e.data);
+                    console.log('SYSLOG RECEIVED:', data);
                     const newLog = data.payload as LogEntry;
+                    if (!newLog.id) {
+                        newLog.id = `fallback-id-${Date.now()}-${Math.random()}`; // Prevent destructive duplicate collapse
+                    }
 
                     setLogs((prev) => {
                         // Deduplicate in case of reconnects pushing history again
@@ -229,15 +233,15 @@ export function SystemActivity() {
                                 <span className="text-muted-foreground whitespace-nowrap opacity-40 group-hover:opacity-70">
                                     {new Date(log.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                 </span>
-                                <span className="text-[9px] mt-[2px] opacity-75">{getLevelIcon(log.level)}</span>
-                                <span className={`uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-[9px] font-sans font-bold ${getSourceColor(log.source)}`}>
-                                    {log.source.substring(0, 3)}
+                                <span className="text-[9px] mt-[2px] opacity-75">{getLevelIcon(log.level || 'info')}</span>
+                                <span className={`uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-[9px] font-sans font-bold ${getSourceColor(log.source || 'system')}`}>
+                                    {(log.source || 'sys').substring(0, 3)}
                                 </span>
                                 <span className="text-foreground/50 uppercase tracking-[2px] text-[9px] w-16 shrink-0 mt-[2px] font-sans font-bold">
-                                    [{log.type}]
+                                    [{log.type || 'unknown'}]
                                 </span>
                                 <span className={`text-foreground/90 break-all leading-relaxed ${log.level === 'error' ? 'text-red-400' : log.level === 'warn' ? 'text-yellow-400' : ''}`}>
-                                    {log.message}
+                                    {log.message || 'Empty payload'}
                                 </span>
                             </div>
 

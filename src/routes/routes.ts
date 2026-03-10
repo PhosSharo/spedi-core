@@ -234,11 +234,15 @@ const routeRoutes: FastifyPluginAsync = async (fastify) => {
         schema: {
             tags: ['Routes'],
             summary: 'Dispatch a route',
-            description: 'Starts an autonomous route. Validates: route is draft/aborted, no active route on device, active session exists. Publishes waypoints to device via MQTT.',
+            description: 'Starts an autonomous route. Validates: route is draft/aborted, no active route on device, active session exists. Publishes waypoints to device via MQTT. Accepts empty bodies.',
             security: [{ BearerAuth: [] }],
             params: {
                 type: 'object',
                 properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            body: {
+                type: 'object',
+                additionalProperties: true, // explicitly permit empty `{}`
             },
             response: {
                 200: RouteRecord,
@@ -269,11 +273,15 @@ const routeRoutes: FastifyPluginAsync = async (fastify) => {
         schema: {
             tags: ['Routes'],
             summary: 'Abort an active route',
-            description: 'Aborts an active route. Resets desired state to idle and publishes stop_route to the device.',
+            description: 'Aborts an active route. Resets desired state to idle and publishes stop_route to the device. Accepts empty bodies.',
             security: [{ BearerAuth: [] }],
             params: {
                 type: 'object',
                 properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            body: {
+                type: 'object',
+                additionalProperties: true, // explicitly permit empty `{}`
             },
             response: {
                 200: {

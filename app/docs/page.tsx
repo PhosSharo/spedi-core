@@ -38,16 +38,21 @@ function CodeBlock({ lang, title, children }: { lang: string; title?: string; ch
         setTimeout(() => setCopied(false), 1500);
     };
     return (
-        <div className="border border-border rounded-sm overflow-hidden bg-background mt-2">
+        <div className="border border-border rounded-sm overflow-hidden bg-background mt-2 relative group">
             {title && (
                 <div className="px-3 py-1.5 bg-muted/20 border-b border-border flex justify-between items-center">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans">{title}</span>
-                    <button onClick={copy} className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans hover:text-foreground active:scale-95 transition-all">
+                    <button onClick={copy} className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans hover:text-foreground active:scale-95 transition-all p-1">
                         {copied ? '✓ COPIED' : 'COPY'}
                     </button>
                 </div>
             )}
-            <pre className="p-3 overflow-x-auto"><code className="text-[11px] font-mono text-foreground/90 leading-relaxed whitespace-pre select-all block">{children}</code></pre>
+            {!title && (
+                <button onClick={copy} className="absolute top-2 right-2 text-[10px] font-bold text-muted-foreground bg-background/80 border border-border px-2 py-1 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:text-foreground md:flex hidden">
+                    {copied ? '✓ COPIED' : 'COPY'}
+                </button>
+            )}
+            <pre className="p-3 overflow-x-auto"><code className="text-[11px] font-mono text-foreground/90 leading-relaxed whitespace-pre block">{children}</code></pre>
         </div>
     );
 }
@@ -61,9 +66,9 @@ function GuidesTab() {
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans px-2 mb-3">Sections</p>
                 {[
                     { id: 'architecture', label: '1. Architecture & Shadow' },
-                    { id: 'configuration', label: '2. Dynamic Configuration' },
-                    { id: 'hardware', label: '3. Hardware (MQTT)' },
-                    { id: 'client', label: '4. Client Apps (REST/WS)' },
+                    { id: 'infrastructure', label: '2. Infrastructure & Broker' },
+                    { id: 'hardware', label: '3. Hardware Integration' },
+                    { id: 'client', label: '4. Client Integration' },
                 ].map(item => (
                     <a
                         key={item.id}
@@ -95,27 +100,34 @@ function GuidesTab() {
                     </div>
                 </SpecPanel>
 
-                {/* 2. Configuration */}
-                <SpecPanel id="configuration" title="2. Dynamic Configuration" icon={RiSettings3Line}>
-                    <div className="text-xs text-muted-foreground leading-relaxed space-y-4">
+                {/* 2. Infrastructure */}
+                <SpecPanel id="infrastructure" title="2. Infrastructure & Broker Settings" icon={RiSettings3Line}>
+                    <div className="text-xs text-muted-foreground leading-relaxed space-y-6">
                         <p>
-                            <strong>Almost nothing is hardcoded.</strong> MQTT broker addresses, port proxies, topics, payload limits, and telemetry mapping rules live exclusively in the PostgreSQL database and are fetched into server memory at boot. You can view and edit these in the <strong>Config</strong> tab.
+                            SPEDI utilizes Eclipse Mosquitto for message brokering. When integrating with PaaS providers like Railway, external port mappings and security ACLs govern the connection lifecycle.
                         </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="border border-border p-3">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-foreground border-b border-subtle pb-1 mb-2">MQTT Topic Topology</p>
-                                <p className="mb-2">Config keys dictate where hardware should listen or publish. Example keys (mutable via Dashboard):</p>
-                                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                                    <li><code className="text-[10px] font-mono text-foreground">mqtt_topic_status</code> (Default: spedi/vehicle/status)</li>
-                                    <li><code className="text-[10px] font-mono text-foreground">mqtt_topic_joystick</code> (Default: spedi/vehicle/joystick)</li>
-                                    <li><code className="text-[10px] font-mono text-foreground">mqtt_topic_route</code> (Default: spedi/vehicle/route)</li>
-                                </ul>
+                        
+                        <div>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Network Ports & TCP Proxy</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="border border-border p-3 bg-muted/5 rounded-sm">
+                                    <p className="font-bold text-foreground mb-1">Internal Network (Backend)</p>
+                                    <p>The Fastify backend running in the same private network (e.g., identical Railway project namespace) connects directly to the containerized broker over the standard unencrypted port: <code className="text-[10px] font-mono text-foreground px-1 bg-muted/20">1883</code>.</p>
+                                </div>
+                                <div className="border border-border p-3 bg-muted/5 rounded-sm">
+                                    <p className="font-bold text-foreground mb-1">External Access (Hardware ESP32)</p>
+                                    <p>Physical devices accessing the system via public internet MUST use the TCP Proxy. Railway maps external traffic to port 1883 by provisioning a randomized port (e.g., <code className="text-[10px] font-mono text-foreground px-1 bg-muted/20">14546</code>). Hardware firmware must be configured with this public port.</p>
+                                </div>
                             </div>
-                            <div className="border border-border p-3">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-foreground border-b border-subtle pb-1 mb-2">Tolerant Reader Parsing</p>
-                                <p className="mb-2">The device publisher schema is owned by the hardware team and can evolve dynamically. The backend stores the raw JSON natively.</p>
-                                <p>To map hardware JSON fields into standardized memory keys (like lat/lng), update the <code className="text-[10px] font-mono text-foreground bg-muted/40 px-1">telemetry_field_map</code> config key in the database rather than requiring a backend code change.</p>
-                            </div>
+                        </div>
+
+                        <div>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Mosquitto Credentials & ACL Constraints</p>
+                            <p className="mb-2">Traffic segregation prevents malicious manipulation. <code>mosquitto.conf</code> contains two disparate credential schemas:</p>
+                            <ul className="list-disc pl-4 space-y-2 mt-2">
+                                <li><strong>Device Account:</strong> (e.g., <code>user: spedi-device</code>). Provisioned onto hardware clients. Has restricted ACL matching: <em>Read-Only</em> for command topics, <em>Write-Only</em> for telemetry/status topics. Cannot inspect siblings.</li>
+                                <li><strong>Server Account:</strong> (e.g., <code>user: spedi-server</code>). Utilized exclusively by the Node.js backend to facilitate data bridging. Retains wildcard (<code>#</code>) R/W permissions necessary for state shadowing and frontend multiplexing. Do not load these onto hardware.</li>
+                            </ul>
                         </div>
                     </div>
                 </SpecPanel>
@@ -124,61 +136,62 @@ function GuidesTab() {
                 <SpecPanel id="hardware" title="3. Hardware Integration (MQTT)" icon={RiShieldCheckLine}>
                     <div className="text-xs text-muted-foreground leading-relaxed space-y-6">
                         <p>
-                            Devices (ESP32) interface via MQTT over a TCP proxy. See the Config Tab for the mapped Broker IP, Port, and Topic strings. 
+                            The physical vehicle (ESP32) layer requires explicit configuration against the external broker surface.
                         </p>
 
                         <div>
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Publishing Telemetry</p>
-                            <CodeBlock lang="cpp" title="Telemetry Loop">{`#include <PubSubClient.h>
-#include <ArduinoJson.h>
-
-// Substitute with values from the Config database
-const char* mqtt_server = "centerbeam.proxy.rlwy.net";
-const int mqtt_port = 14546;
-
-void publishTelemetry() {
-    JsonDocument doc;
-    doc["lat"] = gps.location.lat(); // Mapped via telemetry_field_map
-    doc["lng"] = gps.location.lng();
-    doc["smart_move"] = autonomousMode;
-    
-    char buffer[256];
-    serializeJson(doc, buffer);
-    mqttClient.publish("spedi/vehicle/status", buffer); // Match mqtt_topic_status config
-}`}</CodeBlock>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Connection String Formatting</p>
+                            <ul className="list-disc pl-4 space-y-2 text-muted-foreground">
+                                <li><strong>Host / Address:</strong> Specify the raw TCP Proxy domain address (e.g., <code>abc.proxy.rlwy.net</code>). <em>Crucially, omit all schema prefixes (do not use <code>tcp://</code> or <code>mqtt://</code>) when passing into standard Arduino C++ libraries.</em></li>
+                                <li><strong>Port:</strong> Specify the public proxy port mapped to the service, absolutely do not supply 1883.</li>
+                                <li><strong>Authentication:</strong> Supply the <em>Device Account</em> credentials via <code>PubSubClient::connect(clientId, user, pass)</code>.</li>
+                            </ul>
                         </div>
 
                         <div>
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Command Timeout Constraint</p>
-                            <div className="border border-border bg-muted/5 p-4 rounded-sm">
-                                <p className="mb-2"><strong>Context:</strong> The device receives joystick JSON packets over MQTT. If the client loses connection, the server will cease publishing commands, but the device will maintain its last known motor state.</p>
-                                <p><strong>Requirement:</strong> The device firmware must implement a timeout check: <code>millis() - lastCommandTime &gt; 2000 ms</code>. If the threshold is exceeded, the device must autonomously halt motor outputs to prevent collisions.</p>
-                            </div>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Publishing & Parsing Constraints</p>
+                            <p className="mb-2">Hardware publishes physical sensor logic natively formatted. Mapped schema definitions reside entirely in the <code className="text-[10px] font-mono text-foreground bg-muted/20 px-1">telemetry_field_map</code> PostgreSQL config, allowing agnostic C++ serialization without needing backend patching.</p>
+                            <CodeBlock lang="cpp" title="Example Firmware C++">{`// Correct format: No protocol prefix, randomized public port.
+const char* mqtt_server = "roundhouse.proxy.rlwy.net";
+const int mqtt_port = 23908; 
+
+void transmitTelemetry() {
+    JsonDocument doc;
+    doc["lat"] = gps.lat();     // Key mapped remotely via telemetry_field_map
+    doc["lng"] = gps.lng();
+    
+    char buffer[256];
+    serializeJson(doc, buffer);
+    mqttClient.publish("spedi/vehicle/status", buffer); 
+}`}</CodeBlock>
                         </div>
                     </div>
                 </SpecPanel>
 
                 {/* 4. Client Apps */}
-                <SpecPanel id="client" title="4. Client Applications (REST & Websockets)" icon={RiWifiLine}>
+                <SpecPanel id="client" title="4. Client Integration (REST & WebSockets)" icon={RiWifiLine}>
                     <div className="text-xs text-muted-foreground leading-relaxed space-y-6">
                         <p>
-                            Device interfaces map to specific transport protocols based on operational requirements.
+                            High-level clients (Mobile Apps, Web Dashboards) are abstracted away from MQTT via the Node.js API boundary.
                         </p>
 
                         <div>
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Observability via SSE (Server-Sent Events)</p>
-                            <p className="mb-2">Admin Dashboards or passive monitoring maps use a unidirectional <code className="text-[10px] font-mono text-foreground px-1 bg-muted/40">GET /events</code> endpoint. As MQTT telemetry hits the server, it multiplexes it down to connected browsers. It is lightweight, unidirectional, and strictly read-only.</p>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Control Flow Checklist</p>
+                            <ol className="list-decimal pl-4 space-y-2 mb-4">
+                                <li>Exchange credentials at <code className="text-[10px] font-mono text-foreground bg-muted/20 px-1">POST /auth/login</code> to receive a stateless JWT access token.</li>
+                                <li>Execute <code className="text-[10px] font-mono text-foreground bg-muted/20 px-1">POST /session</code> with <code>Authorization: Bearer &lt;TOKEN&gt;</code> to acquire the vehicle steering mutex. Validating mutex acquisition is mandatory before transmitting commands.</li>
+                                <li>Engage a WebSocket connection against <code className="text-[10px] font-mono text-foreground bg-muted/20 px-1">wss://&lt;BACKEND&gt;/control?token=&lt;YOUR_TOKEN&gt;</code>.</li>
+                            </ol>
                         </div>
 
                         <div>
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Active Control via WebSocket</p>
-                            <p className="mb-2">Applications requiring active navigation control utilize WebSockets. Connections require session verification via REST endpoints prior to initialization.</p>
-                            <ol className="list-decimal pl-4 space-y-2 mb-4">
-                                <li>Execute <code className="text-[10px] font-mono text-foreground px-1 bg-muted/40">POST /session</code> with a valid JWT. The backend sets the session mode in memory.</li>
-                                <li>Open a WebSocket to <code className="text-[10px] font-mono text-foreground px-1 bg-muted/40">wss://.../control?token=YOUR_JWT</code>.</li>
-                                <li>Transmit JSON payloads via the socket using the defined frame schema. Over-schema or invalid payloads are discarded.</li>
-                            </ol>
-                            <CodeBlock lang="json" title="WebSocket Frame Payload">{`{
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">WebSocket Socket Framing Envelope</p>
+                            <div className="border border-red-900/40 bg-red-500/5 p-3 rounded-sm mb-3">
+                                <p className="font-bold text-red-400 mb-1 text-[11px]">Constraint Warning</p>
+                                <p className="text-muted-foreground">The bidirectional WebSocket requires strict JSON packet framing. Raw motor logic (flat objects) transmitted directly into the socket will fail JSON-schema validation and drop silently. Ensure you nest properties under a typed envelope payload.</p>
+                            </div>
+                            <CodeBlock lang="json" title="MANDATORY CLIENT WEBSOCKET FRAME">{`// Clients MUST emit this shape into the socket
+{
   "type": "joystick",
   "payload": {
     "throttle": 75,
@@ -186,12 +199,7 @@ void publishTelemetry() {
   }
 }`}</CodeBlock>
                         </div>
-                        
-                        <div className="border border-border p-3 bg-muted/5 rounded-sm">
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground">System Roles</p>
-                            <p className="mt-2 text-muted-foreground"><strong>Superuser:</strong> Created only via CLI / seed. Grants global access to rewrite <code>telemetry_field_map</code>, DB configs, or user access.</p>
-                            <p className="mt-1 text-muted-foreground"><strong>Standard User:</strong> Registered through UI workflows. Used by Controller applications to get JWT tokens and acquire active driving sessions. Cannot manipulate configs.</p>
-                        </div>
+
                     </div>
                 </SpecPanel>
 

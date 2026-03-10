@@ -27,7 +27,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 lg:p-6 selection:bg-foreground selection:text-background font-mono">
+        <div className="min-h-screen w-full bg-background text-foreground flex flex-col items-center justify-center p-4 lg:p-6 selection:bg-foreground selection:text-background font-mono">
 
             <div className="w-full max-w-sm relative z-10 border border-border bg-background p-6 rounded-sm">
                 <div className="flex flex-col gap-1 mb-6 border-b border-border pb-4">

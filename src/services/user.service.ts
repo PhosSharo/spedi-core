@@ -18,8 +18,10 @@ export class UserService {
             console.warn('⚠️ UserService: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing. Admin operations will fail.');
         }
 
-        // Initialize Supabase with service role key for bypass RLS and admin operations
-        this.supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+        // Initialize Supabase with service role key for bypass RLS and admin operations.
+        // If the key is missing from env, we use a dummy string to prevent the entire node 
+        // server from crashing on boot (createClient throws if empty). Operations will just fail gracefully.
+        this.supabaseAdmin = createClient(supabaseUrl || 'http://dummy', serviceRoleKey || 'dummy_key_to_prevent_startup_crash', {
             auth: {
                 autoRefreshToken: false,
                 persistSession: false

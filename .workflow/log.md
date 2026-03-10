@@ -258,10 +258,16 @@
 > Addressed developer onboarding feedback by restructuring `app/docs/page.tsx` into strict isolated integration domains.
 > Defined raw TCP port mapping required for Railway's Mosquitto container.
 > Hard-documented the `{ type, payload }` WebSocket framing wrapper.
-261: > Expanded touch targets and added CSS selection helpers to code blocks for mobile browser copies.
-262: 
-263: 48 | DOCS    | API Reference and System Constants Overhaul
-264: > Added `Camera` tags to server OpenAPI schema and created `/camera` REST endpoint to fetch latest SSE snapshots.
-265: > Consolidated all Railway infrastructure variables, connection URLs, and topic mappings into a centralized 'System Constants' section in `app/docs/page.tsx`.
-266: > Replaced hardcoded credentials with variable placeholders across all code examples for security.
-267: > Standardized all internal developer references to use `spedi2026` as the designated MQTT default.
+> Expanded touch targets and added CSS selection helpers to code blocks for mobile browser copies.
+
+48 | DOCS    | API Reference and System Constants Overhaul
+> Added `Camera` tags to server OpenAPI schema and created `/camera` REST endpoint to fetch latest SSE snapshots.
+> Consolidated all Railway infrastructure variables, connection URLs, and topic mappings into a centralized 'System Constants' section in `app/docs/page.tsx`.
+> Replaced hardcoded credentials with variable placeholders across all code examples for security.
+> Standardized all internal developer references to use `spedi2026` as the designated MQTT default.
+
+49 | FIX     | Dashboard System Activity Resilience & Deduplication
+> Fixed "invisible logs" bug where `undefined === undefined` ID comparisons collapsed the React state array.
+> Implemented defensive fallback UUIDs in `system-activity.tsx` to handle legacy or malformed SSE events.
+> Added property fallback rendering (level, source, message) to prevent UI crashes on incomplete log metadata.
+> Injected `logService.info` triggers into `DeviceService` control paths to ensure activity is visible.

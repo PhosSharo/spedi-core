@@ -155,4 +155,33 @@ The Fastify CORS configuration was restricted to a static list of trusted origin
 Updated `src/server.ts` to use `origin: true` in the CORS configuration. This reflects the request's `Origin` header in the `Access-Control-Allow-Origin` response, allowing connections from any origin while still supporting `credentials: true`.
 
 ### ⚠️ Watch Out
-While permissive, this is appropriate for development and MVP clients (like mobile apps) that don't have a single fixed web origin. In higher security environments, consider using a regex or a more restricted validation function.
+- While permissive, this is appropriate for development and MVP clients (like mobile apps) that don't have a single fixed web origin. In higher security environments, consider using a regex or a more restricted validation function.
+
+---
+
+## Fastify JSON Parsing — Empty Bodies — 2026-03-11
+
+### ❌ What Failed
+Endpoints like `POST /routes/:id/start` or `DELETE /session` failed with `400 Bad Request` or crashed with `FST_ERR_CTP_EMPTY_JSON_BODY` when the request body was omitted or empty.
+
+### 🔍 Why It Failed
+Fastify's default JSON parser rejects `application/json` content types with empty or malformed literal strings. Even if the schema allows an optional body, the *parser* layer catches it first and returns an error.
+
+### ✅ Fix / Workaround
+Replaced the default `application/json` parser using `fastify.addContentTypeParser` with `parseAs: 'string'`. The custom parser returns `{}` if the body is an empty string, allowing the request to proceed to the routing/validation layer where the schema can handle it.
+
+---
+
+## React State Deduplication — Identity Collapse — 2026-03-11
+
+### ❌ What Failed
+The System Activity panel appeared "stuck" or empty after the first log arrived.
+
+### 🔍 Why It Failed
+The component used `if (prev.some((l) => l.id === newLog.id)) return prev;` to prevent duplicate logs (history re-streams). If the backend emitted a log without an `id`, `newLog.id` became `undefined`. Since `undefined === undefined`, every subsequent log without an ID was treated as a duplicate of the first one, silently dropping all new activity.
+
+### ✅ Fix / Workaround
+Implemented a defensive fallback ID in the frontend parser: 
+`newLog.id = newLog.id || `fallback-id-${Date.now()}-${Math.random()}`;`
+This ensures every event is treated as unique unless a real, stable ID is provided by the server.
+

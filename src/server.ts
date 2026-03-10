@@ -21,6 +21,8 @@ fastify.register(cors, {
         'https://spedi-core.vercel.app',
     ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
 });
 
 // Configure Supabase Client

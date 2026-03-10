@@ -14,12 +14,9 @@ const fastify = Fastify({
     logger: true
 });
 
-// CORS — allow the Vercel frontend and local dev
+// CORS — allow all origins (reflects requester) for Flutter Web and development
 fastify.register(cors, {
-    origin: [
-        'http://localhost:3000',
-        'https://spedi-core.vercel.app',
-    ],
+    origin: true,
     credentials: true,
     methods: 'GET,POST,PUT,DELETE,PATCH,OPTIONS',
     allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization',

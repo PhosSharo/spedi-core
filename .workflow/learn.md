@@ -141,3 +141,18 @@ Updated the Fastify auth plugin to check for a `token` query parameter as a fall
 
 ### ✅ Fix / Workaround
 Set `strictPreflight: false` in the CORS registration. This forces Fastify to return the full list of configured `methods` for any preflight request.
+---
+
+## Flutter Web CORS Blocking — 2026-03-10
+
+### ❌ What Failed
+Flutter Web and mobile clients were blocked by CORS when attempting to connect to the Railway backend.
+
+### 🔍 Why It Failed
+The Fastify CORS configuration was restricted to a static list of trusted origins (`localhost:3000` and `spedi-core.vercel.app`). Flutter Web, which often runs on dynamic ports during development or from various test environments, was not included.
+
+### ✅ Fix / Workaround
+Updated `src/server.ts` to use `origin: true` in the CORS configuration. This reflects the request's `Origin` header in the `Access-Control-Allow-Origin` response, allowing connections from any origin while still supporting `credentials: true`.
+
+### ⚠️ Watch Out
+While permissive, this is appropriate for development and MVP clients (like mobile apps) that don't have a single fixed web origin. In higher security environments, consider using a regex or a more restricted validation function.

@@ -244,3 +244,7 @@
 > Created `app/users/page.tsx` with CRUD modals matching the terminal aesthetic.
 > Integrated "USERS" navigation link into the sidebar for superusers.
 > Verified end-to-end functionality and production build.
+
+45 | FIX     | Resolved CORS blocking for Flutter Web and mobile clients
+> Updated CORS configuration in server.ts to use origin: true.
+> Allows diverse clients (Flutter, development environments) to connect without protocol-level blocks.

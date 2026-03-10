@@ -305,3 +305,15 @@
 56 | FIX     | Production Build Pipeline (tsc)
 > Excluded `src/tests` from `tsconfig.build.json`.
 > Prevents `tsc` from throwing "Module not found" errors due to extensionless imports in Vitest files during Railway deployment.
+
+57 | FIX     | SSE Proxy Buffering (Real-time regression)
+> Added `X-Accel-Buffering: no` to `sse.service.ts` response headers.
+> Ensures reverse proxies (Railway/Vercel) flush SSE chunks immediately instead of waiting for a buffer limit.
+
+58 | FIX     | SSE Reconnect Handler (Stale Listeners)
+> Added `attachedTypesRef.current.clear()` to `sse-context.tsx`.
+> Fixes soft-reconnects failing to bind event listeners to the new `EventSource` instance.
+
+59 | FIX     | Global API Error Logging
+> Added global `onError` hook to Fastify in `server.ts`.
+> Pipes all HTTP 4xx/5xx errors to `logService` so they appear in the dashboard System Activity stream.

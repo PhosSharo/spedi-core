@@ -294,3 +294,42 @@ Vitest and development environments allow extensionless imports (e.g., `import {
 
 ### ✅ Fix / Workaround
 Excluded `src/tests` from `tsconfig.build.json`. Test files are for development and CI/CD (Vitest), and do not need to be compiled for the production `dist/` bundle.
+
+---
+
+## SSE Proxy Buffering (Delayed Telemetry) — 2026-03-11
+
+### ❌ What Failed
+The Telemetry Panel and System Activity stream received logs in large delayed bursts, rather than instantaneously, when deployed to Railway.
+
+### 🔍 Why It Failed
+Nginx, Traefik, and Envoy (used by Railway and Vercel) buffer HTTP responses to optimize packet size. Because `text/event-stream` is a continuous infinite response, the proxy buffers the chunks until they reach ~4KB before flushing them to the client. This breaks the real-time nature of SSE.
+
+### ✅ Fix / Workaround
+Added `X-Accel-Buffering: no` to the `reply.raw.writeHead()` headers in `SseService`. This is a standard directive that instructs Nginx and most modern reverse proxies to disable buffering for this specific request and flush bytes immediately.
+
+---
+
+## React `useRef` Stale State on Reconnect — 2026-03-11
+
+### ❌ What Failed
+If the SSE connection dropped and reconnected, the connection showed as `CONNECTED` but telemetry and logs stopped updating completely.
+
+### 🔍 Why It Failed
+The `SseProvider` used `attachedTypesRef.current.add(eventType)` to prevent adding duplicate `addEventListener` calls to the `EventSource`. However, when `connectSSE()` instantiated a *new* `EventSource` on reconnect, it did not `.clear()` the ref! So `attachEventListener` saw the event type was already in the Set and skipped attaching it to the *new* socket.
+
+### ✅ Fix / Workaround
+Added `attachedTypesRef.current.clear()` inside `connectSSE()` right before creating the new `EventSource`.
+
+---
+
+## Selective Logging (Missing API Errors) — 2026-03-11
+
+### ❌ What Failed
+The System Activity panel never displayed HTTP API errors (400 Bad Request, 500 Internal Error, Schema Validation failures).
+
+### 🔍 Why It Failed
+`SystemActivity` only subscribes to the `syslog` SSE stream emitted by `logService`. Fastify's built-in error handler routes all API errors to the user response and console, entirely bypassing `logService`. 
+
+### ✅ Fix / Workaround
+Injected a global Fastify hook: `fastify.addHook('onError', ...)` in `server.ts`. This hook catches all errors right before they are sent to the client and formats them into a `logService.error('system', 'connection', ...)` broadcast, guaranteeing the dashboard sees exactly what failed.

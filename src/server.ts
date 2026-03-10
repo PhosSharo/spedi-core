@@ -49,6 +49,7 @@ import routeRoutes from './routes/routes';
 import telemetryRoutes from './routes/telemetry';
 import debugRoutes from './routes/debug';
 import userRoutes from './routes/users';
+import cameraRoutes from './routes/camera';
 import { routeService } from './services/route.service';
 
 // Replace default JSON parser to tolerate empty bodies
@@ -118,6 +119,7 @@ The system follows the **Device Shadow** pattern (Desired vs reported state).
             { name: 'Realtime', description: 'SSE (Server-Sent Events) and WebSocket endpoints. Require ?token=JWT query parameters.' },
             { name: 'Debug', description: 'Developer tools. Includes the Telemetry Mock Injector for platform simulation.' },
             { name: 'System', description: 'Platform health and diagnostics.' },
+            { name: 'Camera', description: 'Latest snapshot from the active ESP32-CAM.' },
         ],
     },
 });
@@ -139,6 +141,7 @@ fastify.register(routeRoutes);
 fastify.register(telemetryRoutes);
 fastify.register(debugRoutes);
 fastify.register(userRoutes);
+fastify.register(cameraRoutes);
 
 const start = async () => {
     try {

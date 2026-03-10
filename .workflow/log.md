@@ -248,3 +248,20 @@
 45 | FIX     | Resolved CORS blocking for Flutter Web and mobile clients
 > Updated CORS configuration in server.ts to use origin: true.
 > Allows diverse clients (Flutter, development environments) to connect without protocol-level blocks.
+
+46 | FIX     | Fastify empty JSON bodies & Live System Activity Drops
+> Replaced `@fastify` default `application/json` parser to gracefully emit `{}` on empty strings instead of crashing with `FST_ERR_CTP_EMPTY_JSON_BODY`.
+> Injected an unbounded `await new Promise` lock to `GET /events` enforcing persistent TCP hooks for `sseService` streaming.
+> Removed conflicting wildcard CORS headers in `sse.service.ts` to favor global configurations.
+
+47 | DOCS    | Overhauling System Documentation
+> Addressed developer onboarding feedback by restructuring `app/docs/page.tsx` into strict isolated integration domains.
+> Defined raw TCP port mapping required for Railway's Mosquitto container.
+> Hard-documented the `{ type, payload }` WebSocket framing wrapper.
+261: > Expanded touch targets and added CSS selection helpers to code blocks for mobile browser copies.
+262: 
+263: 48 | DOCS    | API Reference and System Constants Overhaul
+264: > Added `Camera` tags to server OpenAPI schema and created `/camera` REST endpoint to fetch latest SSE snapshots.
+265: > Consolidated all Railway infrastructure variables, connection URLs, and topic mappings into a centralized 'System Constants' section in `app/docs/page.tsx`.
+266: > Replaced hardcoded credentials with variable placeholders across all code examples for security.
+267: > Standardized all internal developer references to use `spedi2026` as the designated MQTT default.

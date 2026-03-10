@@ -111,11 +111,11 @@ export class MqttService extends EventEmitter {
             // Timeout for first connect
             setTimeout(() => {
                 if (!this.client?.connected) {
-                    const msg = `MqttService: Initial connection to ${brokerUrl} timed out.`;
-                    console.error(`❌ ${msg}`);
-                    reject(new Error(msg));
+                    const msg = `MqttService: Initial connection to ${brokerUrl} timed out. Proceeding anyway.`;
+                    console.warn(`⚠️ ${msg}`);
+                    resolve(); // Resolve anyway so the server can start without MQTT
                 }
-            }, 15000);
+            }, 3000);
         });
     }
 

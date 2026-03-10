@@ -21,8 +21,8 @@ fastify.register(cors, {
         'https://spedi-core.vercel.app',
     ],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+    methods: 'GET,POST,PUT,DELETE,PATCH,OPTIONS',
+    allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
     strictPreflight: false,
 });
 
@@ -162,10 +162,10 @@ const start = async () => {
         // 6. MQTTClient connects (after config is available)
         fastify.log.info('Connecting to MQTT broker...');
         mqttService.onMessage((topic, payload) => telemetryService.ingest(topic, payload));
-        await mqttService.connect();
-        fastify.log.info('MQTT broker connected.');
+        mqttService.connect().catch(e => fastify.log.warn('MQTT connection failed on startup, will retry.'));
+        fastify.log.info('MQTT broker connection initiated.');
 
-        // 6. HTTP server starts accepting
+        // 7. HTTP server starts accepting
         const port = Number(process.env.PORT) || 3000;
         await fastify.listen({ port, host: '0.0.0.0' });
         console.log(`Server listening on port ${port}`);

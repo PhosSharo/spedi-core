@@ -206,6 +206,20 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
         };
     });
     /**
+     * OPTIONS /devices/:id 
+     * Explicit handler to fix Fastify eating CORS headers on parametric DELETE routes
+     */
+    fastify.options('/devices/:id', async (request, reply) => {
+        return reply
+            .header('Access-Control-Allow-Origin', 'https://spedi-core.vercel.app')
+            .header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+            .header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization')
+            .header('Access-Control-Allow-Credentials', 'true')
+            .status(204)
+            .send();
+    });
+
+    /**
      * DELETE /devices/:id
      */
     fastify.delete('/devices/:id', {

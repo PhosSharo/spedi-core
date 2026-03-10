@@ -27,12 +27,6 @@ export default function ConfigManager() {
 
     useEffect(() => {
         const checkAuthAndFetchConfig = async () => {
-            const token = getToken();
-            if (!token) {
-                router.push('/login');
-                return;
-            }
-
             try {
                 // 1. Verify Auth and Superuser status
                 const userData = await getCurrentUser();

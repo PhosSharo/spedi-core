@@ -45,11 +45,19 @@ export async function logoutDirect() {
  * Returns null if not authenticated.
  */
 export async function getCurrentUser() {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) return null;
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    if (error || !session) {
+        memoryToken = null;
+        return null;
+    }
+
+    // Crucial: restore the in-memory token from the persisted session
+    memoryToken = session.access_token;
+
     return {
-        id: user.id,
-        email: user.email!,
-        is_superuser: user.app_metadata?.is_superuser === true,
+        id: session.user.id,
+        email: session.user.email!,
+        is_superuser: session.user.app_metadata?.is_superuser === true,
     };
 }

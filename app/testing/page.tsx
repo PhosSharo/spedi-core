@@ -496,9 +496,6 @@ export default function TestingPage() {
 
     useEffect(() => {
         const init = async () => {
-            const token = getToken();
-            if (!token) { router.push('/login'); return; }
-
             try {
                 const userData = await getCurrentUser();
                 if (!userData) throw new Error('Not authenticated');

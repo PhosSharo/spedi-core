@@ -6,9 +6,8 @@ import { getApiUrl } from '@/lib/api';
 import { getToken } from '@/lib/auth-store';
 import {
     RiBookOpenLine, RiCodeLine, RiShieldCheckLine,
-    RiWifiLine, RiSendPlaneLine, RiServerLine,
-    RiLockLine, RiCheckboxCircleLine, RiAlertLine,
-    RiArrowRightSLine, RiUserSettingsLine
+    RiWifiLine, RiServerLine, RiCheckboxCircleLine, 
+    RiAlertLine, RiSettings3Line, RiDatabase2Line
 } from '@remixicon/react';
 
 // Scalar styles
@@ -16,22 +15,15 @@ import '@scalar/api-reference-react/style.css';
 
 type Tab = 'guides' | 'reference';
 
-// ── Guide Sections ───────────────────────────────────────────────────
-function GuideSection({ id, icon: Icon, title, children }: {
-    id: string;
-    icon: React.ElementType;
-    title: string;
-    children: React.ReactNode;
-}) {
+// ── Technical Spec Panels ──────────────────────────────────────────────
+function SpecPanel({ title, children, icon: Icon, id }: { title: string; children: React.ReactNode; icon?: React.ElementType; id?: string }) {
     return (
-        <section id={id} className="rounded-sm border border-border bg-background p-6">
-            <div className="flex items-center gap-3 mb-4 border-b border-border pb-3">
-                <div className="bg-foreground text-background p-1.5 rounded-sm">
-                    <Icon size={16} />
-                </div>
+        <section id={id} className="border border-border bg-surface rounded-sm overflow-hidden scroll-mt-6">
+            <div className="flex items-center gap-2 px-3 py-2 bg-muted/20 border-b border-border">
+                {Icon && <Icon size={14} className="text-muted-foreground" />}
                 <h2 className="text-xs font-bold tracking-widest uppercase font-sans text-foreground">{title}</h2>
             </div>
-            <div className="space-y-4 text-xs text-foreground/80 leading-relaxed font-sans">
+            <div className="p-4 space-y-6">
                 {children}
             </div>
         </section>
@@ -46,22 +38,18 @@ function CodeBlock({ lang, title, children }: { lang: string; title?: string; ch
         setTimeout(() => setCopied(false), 1500);
     };
     return (
-        <div className="rounded-sm border border-border overflow-hidden">
+        <div className="border border-border rounded-sm overflow-hidden bg-background mt-2">
             {title && (
-                <div className="px-3 py-1.5 bg-muted/40 border-b border-border flex justify-between items-center">
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest font-sans">{title}</span>
-                    <button onClick={copy} className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest font-sans -my-3 -mx-2 p-3 hover:text-foreground active:scale-95 transition-all">
-                        {copied ? '✓ Copied' : 'Copy'}
+                <div className="px-3 py-1.5 bg-muted/20 border-b border-border flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans">{title}</span>
+                    <button onClick={copy} className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans hover:text-foreground active:scale-95 transition-all">
+                        {copied ? '✓ COPIED' : 'COPY'}
                     </button>
                 </div>
             )}
-            <pre className="p-3 bg-muted/10 overflow-x-auto"><code className="text-[10px] font-mono text-foreground/90 leading-relaxed whitespace-pre select-all">{children}</code></pre>
+            <pre className="p-3 overflow-x-auto"><code className="text-[11px] font-mono text-foreground/90 leading-relaxed whitespace-pre select-all block">{children}</code></pre>
         </div>
     );
-}
-
-function Label({ children }: { children: React.ReactNode }) {
-    return <span className="text-[9px] font-bold text-muted-foreground bg-muted/30 border border-border px-1.5 py-0.5 rounded-sm uppercase tracking-widest font-sans">{children}</span>;
 }
 
 // ── Guides Content ───────────────────────────────────────────────────
@@ -69,259 +57,143 @@ function GuidesTab() {
     return (
         <div className="flex gap-6 flex-1 overflow-hidden">
             {/* Sidebar Navigation */}
-            <nav className="w-48 flex-shrink-0 overflow-y-auto border-r border-border pr-4 py-2">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans px-1 mb-3">CONTENTS</p>
+            <nav className="w-56 flex-shrink-0 overflow-y-auto border-r border-border pr-4 pt-1 hidden md:block">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans px-2 mb-3">Sections</p>
                 {[
-                    { id: 'quick-start', label: 'Quick Start' },
-                    { id: 'constants', label: 'System Constants & Configuration' },
-                    { id: 'infrastructure', label: 'Infrastructure & Port Mapping' },
-                    { id: 'mqtt-broker', label: 'MQTT Broker & Security' },
-                    { id: 'hardware', label: 'Hardware Integration' },
-                    { id: 'backend', label: 'Backend REST API' },
-                    { id: 'realtime', label: 'WebSocket & SSE Streams' },
-                    { id: 'auth', label: 'Authentication & Users' },
+                    { id: 'architecture', label: '1. Architecture & Shadow' },
+                    { id: 'configuration', label: '2. Dynamic Configuration' },
+                    { id: 'hardware', label: '3. Hardware (MQTT)' },
+                    { id: 'client', label: '4. Client Apps (REST/WS)' },
                 ].map(item => (
                     <a
                         key={item.id}
                         href={`#${item.id}`}
-                        className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest font-sans text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                        className="flex items-center gap-1.5 px-2 py-2 rounded-sm text-xs font-sans text-muted-foreground hover:text-foreground hover:bg-muted/10 transition-colors"
                     >
-                        <RiArrowRightSLine size={10} />
                         {item.label}
                     </a>
                 ))}
             </nav>
 
-            {/* Guide Sections */}
+            {/* Content */}
             <div className="flex-1 overflow-y-auto space-y-8 pr-2 pb-16">
-
-                {/* Quick Start */}
-                <GuideSection id="quick-start" icon={RiSendPlaneLine} title="1. Quick_Start // Order of Operations">
-                    <p>
-                        SPEDI is a composite system requiring specific bring-up staging. Do not attempt to integrate the mobile app or hardware until the core infrastructure is verified.
-                    </p>
-                    <div className="rounded-sm border border-border p-4 bg-muted/10 font-sans space-y-4">
-                        <div className="space-y-1">
-                            <p className="font-bold text-foreground">Phase 1: Database & Platform</p>
-                            <p className="text-muted-foreground">Log into Railway and confirm the Supabase instance, Backend instance, and Mosquitto instance are reporting 'Healthy'. Verify you can log into this Dashboard.</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="font-bold text-foreground">Phase 2: Establish MQTT Infrastructure</p>
-                            <p className="text-muted-foreground">Configure the Railway TCP Proxy for the Mosquitto container (maps internal 1883 to external TCP). Use an MQTT client like MQTTX to verify connection using the `device` credentials.</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="font-bold text-foreground">Phase 3: Hardware Verification</p>
-                            <p className="text-muted-foreground">Flash the ESP32 with your Wi-Fi credentials and the exact TCP Proxy host/port. Observe the <strong>System Activity</strong> tab on this Dashboard; you should see hardware telemetry events arriving.</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="font-bold text-foreground">Phase 4: Client Integration</p>
-                            <p className="text-muted-foreground">Once you verify Telemetry ingestion, you can boot the Mobile App to authenticate via the REST API and open a WebSocket channel against the backend to issue control commands.</p>
-                        </div>
-                    </div>
-                </GuideSection>
-
-                {/* System Constants */}
-                <GuideSection id="constants" icon={RiServerLine} title="2. System_Constants_&_Configuration">
-                    <p>All environmental constants, URLs, authentication keys, and topics are grouped here for explicit reference.</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-[11px] font-mono leading-relaxed">
-
-                        <div className="p-3 border border-border bg-foreground/5 rounded-sm space-y-2">
-                            <p className="font-bold font-sans text-xs uppercase tracking-widest text-foreground pb-2 border-b border-border/50">Core URLs & Ports</p>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground mr-2">API_BASE_URL</span> <span className="text-right break-all">https://&lt;YOUR_RAILWAY_DOMAIN&gt;</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground mr-2">WS_CONTROL_URL</span> <span className="text-right break-all">wss://&lt;YOUR_RAILWAY_DOMAIN&gt;/control</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground mr-2">SSE_EVENTS_URL</span> <span className="text-right break-all">https://&lt;YOUR_RAILWAY_DOMAIN&gt;/events</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground mr-2">MQTT_HOST</span> <span className="text-right break-all">&lt;YOUR_TCP_PROXY_HOST&gt;</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground mr-2">MQTT_PORT</span> <span className="text-right break-all">&lt;YOUR_TCP_PROXY_PORT&gt;</span></div>
-                        </div>
-
-                        <div className="p-3 border border-border bg-foreground/5 rounded-sm space-y-2">
-                            <p className="font-bold font-sans text-xs uppercase tracking-widest text-foreground pb-2 border-b border-border/50">Authentication & Keys</p>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground">MQTT_DEVICE_USER</span> <span className="text-right">device</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground">MQTT_DEVICE_PASS</span> <span className="text-right">spedi2026</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground">MQTT_SERVER_USER</span> <span className="text-right">server</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground">MQTT_SERVER_PASS</span> <span className="text-right">spedi2026</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground">SUPABASE_URL</span> <span className="text-right">&lt;YOUR_SUPABASE_URL&gt;</span></div>
-                        </div>
-
-                        <div className="col-span-1 md:col-span-2 p-3 border border-border bg-foreground/5 rounded-sm space-y-2">
-                            <p className="font-bold font-sans text-xs uppercase tracking-widest text-foreground pb-2 border-b border-border/50">MQTT Topic Map</p>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground">Vehicle Telemetry</span> <span className="text-right">spedi/vehicle/status</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground">Vehicle Camera</span> <span className="text-right">spedi/vehicle/camera</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground">Platform Joystick</span> <span className="text-right">spedi/vehicle/joystick</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground">Platform Route</span> <span className="text-right">spedi/vehicle/route</span></div>
-                        </div>
-
-                    </div>
-                </GuideSection>
-
-                {/* Infrastructure & Port Mapping */}
-                <GuideSection id="infrastructure" icon={RiServerLine} title="3. Infrastructure_&_Port_Mapping">
-                    <p>
-                        If integrating externally, understanding where domains route traffic is critical. The platform runs distinct services managed through Railway.
-                    </p>
-
-                    <p className="font-bold text-foreground mt-4 border-b border-border pb-1">Railway Backend (Node.js REST & WebSockets)</p>
-                    <ul className="list-disc pl-5 mt-2 space-y-2 marker:text-foreground">
-                        <li><strong>Internal Port:</strong> 8080 (Managed by Fastify)</li>
-                        <li><strong>Public HTTPS Domain:</strong> Used for all REST API, SSE, and WebSocket traffic (e.g. `&lt;YOUR_RAILWAY_DOMAIN&gt;`). HTTP automatically upgrades wss:// over standard 443 routes.</li>
-                    </ul>
-
-                    <p className="font-bold text-foreground mt-6 border-b border-border pb-1">Railway Mosquitto (MQTT Broker)</p>
-                    <p className="mt-2 text-red-400 font-bold">CRITICAL: The TCP Proxy must be manually instantiated in Railway!</p>
-                    <ul className="list-disc pl-5 mt-2 space-y-2 marker:text-foreground">
-                        <li><strong>Internal Port:</strong> 1883</li>
-                        <li><strong>Public TCP Proxy:</strong> Raw TCP traffic cannot flow over standard HTTPS boundaries. A dedicated TCP proxy must be generated in the Railway UI under Mosquitto -&gt; Networking.</li>
-                        <li><strong>Example Mapping:</strong> `&lt;YOUR_TCP_PROXY_HOST&gt;:&lt;YOUR_TCP_PROXY_PORT&gt; -&gt; 1883`.
-                            When configuring your hardware or debugging tools, the <strong>Host</strong> is `&lt;YOUR_TCP_PROXY_HOST&gt;` and the <strong>Port</strong> is `&lt;YOUR_TCP_PROXY_PORT&gt;`.
-                        </li>
-                    </ul>
-                </GuideSection>
-
-                {/* MQTT Broker & Security */}
-                <GuideSection id="mqtt-broker" icon={RiShieldCheckLine} title="4. MQTT_Broker_&_Security">
-                    <p>
-                        The Mosquitto broker leverages a hardcoded `passwd` and `acl` (Access Control List) system.
-                    </p>
-                    <div className="grid grid-cols-2 gap-4 mt-4 text-[11px] font-mono leading-relaxed">
-                        <div className="p-3 border border-border bg-foreground/5 rounded-sm">
-                            <p className="font-bold font-sans text-xs uppercase tracking-widest text-foreground pb-2 border-b border-border/50 mb-2">Device Connectivity</p>
-                            <p className="text-muted-foreground"><strong>Role:</strong> Physical vehicles / ESP32</p>
-                            <p className="text-muted-foreground mt-1"><strong>Username:</strong> device</p>
-                            <p className="text-muted-foreground"><strong>Password:</strong> spedi2026</p>
-                            <br />
-                            <p className="text-indigo-400">ACL Privileges:</p>
-                            <ul className="list-disc pl-4 mt-1">
-                                <li>PUBLISH to `spedi/vehicle/status`</li>
-                                <li>PUBLISH to `spedi/vehicle/camera`</li>
-                                <li>SUBSCRIBE to `spedi/vehicle/joystick`</li>
-                                <li>SUBSCRIBE to `spedi/vehicle/route`</li>
-                            </ul>
-                        </div>
-                        <div className="p-3 border border-border bg-foreground/5 rounded-sm">
-                            <p className="font-bold font-sans text-xs uppercase tracking-widest text-foreground pb-2 border-b border-border/50 mb-2">Server Connectivity</p>
-                            <p className="text-muted-foreground"><strong>Role:</strong> Internal Fastify Backend</p>
-                            <p className="text-muted-foreground mt-1"><strong>Username:</strong> server</p>
-                            <p className="text-muted-foreground"><strong>Password:</strong> spedi2026</p>
-                            <br />
-                            <p className="text-emerald-400">ACL Privileges:</p>
-                            <ul className="list-none mt-1">
-                                <li><strong># (Wildcard Read/Write)</strong></li>
-                                <li className="text-[10px] mt-1 text-muted-foreground font-sans">The backend manages all command dispatches and consumes all raw hardware feeds.</li>
+                
+                {/* 1. Architecture */}
+                <SpecPanel id="architecture" title="1. Architecture & Device Shadow" icon={RiServerLine}>
+                    <div className="text-xs text-muted-foreground leading-relaxed space-y-4">
+                        <p>
+                            SPEDI implements the standard IoT Device Shadow architecture to ensure reliable state management between the cloud and the physical vehicle. This pattern maintains a persistent virtual representation of the device, allowing applications to interact with its state even when connectivity is intermittent.
+                        </p>
+                        
+                        <div className="border border-border p-3 bg-muted/5 rounded-sm">
+                            <p className="text-xs font-bold text-foreground mb-2">The Device Shadow Pattern</p>
+                            <ul className="list-disc pl-4 space-y-2">
+                                <li><strong>Desired State:</strong> Represents the intended device state. When a client sends a joystick command via WebSocket, the server updates the <code className="text-[10px] font-mono bg-muted/40 px-1 py-0.5 rounded-sm text-foreground">desired</code> state in memory and publishes the command to MQTT.</li>
+                                <li><strong>Reported State:</strong> Represents the latest state broadcasted by the physical device via MQTT telemetry. The server compares <code className="text-[10px] font-mono bg-muted/40 px-1 py-0.5 rounded-sm text-foreground">desired</code> against <code className="text-[10px] font-mono bg-muted/40 px-1 py-0.5 rounded-sm text-foreground">reported</code> to reconcile client UI state and validate incoming commands.</li>
                             </ul>
                         </div>
                     </div>
-                </GuideSection>
+                </SpecPanel>
 
-                {/* Hardware Integration */}
-                <GuideSection id="hardware" icon={RiCodeLine} title="5. Hardware_Integration // ESP32">
-                    <p>
-                        The device communicates <strong>exclusively via MQTT</strong>. It does not speak HTTP or directly interact with the database.
-                    </p>
+                {/* 2. Configuration */}
+                <SpecPanel id="configuration" title="2. Dynamic Configuration" icon={RiSettings3Line}>
+                    <div className="text-xs text-muted-foreground leading-relaxed space-y-4">
+                        <p>
+                            <strong>Almost nothing is hardcoded.</strong> MQTT broker addresses, port proxies, topics, payload limits, and telemetry mapping rules live exclusively in the PostgreSQL database and are fetched into server memory at boot. You can view and edit these in the <strong>Config</strong> tab.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="border border-border p-3">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-foreground border-b border-subtle pb-1 mb-2">MQTT Topic Topology</p>
+                                <p className="mb-2">Config keys dictate where hardware should listen or publish. Example keys (mutable via Dashboard):</p>
+                                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                                    <li><code className="text-[10px] font-mono text-foreground">mqtt_topic_status</code> (Default: spedi/vehicle/status)</li>
+                                    <li><code className="text-[10px] font-mono text-foreground">mqtt_topic_joystick</code> (Default: spedi/vehicle/joystick)</li>
+                                    <li><code className="text-[10px] font-mono text-foreground">mqtt_topic_route</code> (Default: spedi/vehicle/route)</li>
+                                </ul>
+                            </div>
+                            <div className="border border-border p-3">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-foreground border-b border-subtle pb-1 mb-2">Tolerant Reader Parsing</p>
+                                <p className="mb-2">The device publisher schema is owned by the hardware team and can evolve dynamically. The backend stores the raw JSON natively.</p>
+                                <p>To map hardware JSON fields into standardized memory keys (like lat/lng), update the <code className="text-[10px] font-mono text-foreground bg-muted/40 px-1">telemetry_field_map</code> config key in the database rather than requiring a backend code change.</p>
+                            </div>
+                        </div>
+                    </div>
+                </SpecPanel>
 
-                    <p className="font-bold text-foreground mt-4">Connecting and Publishing</p>
-                    <CodeBlock lang="cpp" title="Arduino Snippet">{`#include <PubSubClient.h>
+                {/* 3. Hardware */}
+                <SpecPanel id="hardware" title="3. Hardware Integration (MQTT)" icon={RiShieldCheckLine}>
+                    <div className="text-xs text-muted-foreground leading-relaxed space-y-6">
+                        <p>
+                            Devices (ESP32) interface via MQTT over a TCP proxy. See the Config Tab for the mapped Broker IP, Port, and Topic strings. 
+                        </p>
+
+                        <div>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Publishing Telemetry</p>
+                            <CodeBlock lang="cpp" title="Telemetry Loop">{`#include <PubSubClient.h>
 #include <ArduinoJson.h>
 
-const char* mqtt_server = "<YOUR_TCP_PROXY_HOST>";
-const int mqtt_port = <YOUR_TCP_PROXY_PORT>; // Numeric port!
-const char* mqtt_user = "device";
-const char* mqtt_pass = "spedi2026";
+// Substitute with values from the Config database
+const char* mqtt_server = "centerbeam.proxy.rlwy.net";
+const int mqtt_port = 14546;
 
-// Publish telemetry every 2 seconds
 void publishTelemetry() {
     JsonDocument doc;
-    doc["lat"]             = gps.location.lat();
-    doc["lng"]             = gps.location.lng();
-    doc["obstacle_left"]   = readUltrasonic(TRIG_L, ECHO_L);
-    doc["obstacle_right"]  = readUltrasonic(TRIG_R, ECHO_R);
-    doc["smart_move"]      = autonomousMode;
-
+    doc["lat"] = gps.location.lat(); // Mapped via telemetry_field_map
+    doc["lng"] = gps.location.lng();
+    doc["smart_move"] = autonomousMode;
+    
     char buffer[256];
     serializeJson(doc, buffer);
-    mqttClient.publish("spedi/vehicle/status", buffer);
+    mqttClient.publish("spedi/vehicle/status", buffer); // Match mqtt_topic_status config
 }`}</CodeBlock>
+                        </div>
 
-                    <p className="font-bold text-foreground mt-4">Listening for Commands</p>
-                    <CodeBlock lang="cpp" title="Arduino Snippet">{`void mqttCallback(char* topic, byte* payload, unsigned int length) {
-    JsonDocument doc;
-    deserializeJson(doc, payload, length);
-
-    if (strcmp(topic, "spedi/vehicle/joystick") == 0) {
-        int throttle = doc["throttle"]; // -100 to 100
-        int steering = doc["steering"]; // -100 to 100
-        setMotors(throttle, steering);
-        lastCommandTime = millis(); // Refresh safety timeout
-    }
-}`}</CodeBlock>
-
-                    <div className="rounded-sm border border-border p-3 bg-muted/10 flex items-start gap-3 mt-4">
-                        <RiAlertLine size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
                         <div>
-                            <p className="font-bold text-foreground text-xs uppercase font-sans">Safety Timeout</p>
-                            <p className="text-muted-foreground">The device must halt motors if no joystick command arrives within 2000ms. Network partition handling must occur on the device firmware side.</p>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Command Timeout Constraint</p>
+                            <div className="border border-border bg-muted/5 p-4 rounded-sm">
+                                <p className="mb-2"><strong>Context:</strong> The device receives joystick JSON packets over MQTT. If the client loses connection, the server will cease publishing commands, but the device will maintain its last known motor state.</p>
+                                <p><strong>Requirement:</strong> The device firmware must implement a timeout check: <code>millis() - lastCommandTime &gt; 2000 ms</code>. If the threshold is exceeded, the device must autonomously halt motor outputs to prevent collisions.</p>
+                            </div>
                         </div>
                     </div>
-                </GuideSection>
+                </SpecPanel>
 
-                {/* Backend API */}
-                <GuideSection id="backend" icon={RiBookOpenLine} title="6. Backend_REST_API">
-                    <p>
-                        The backend orchestrates everything. Read the <a href="#reference" className="text-foreground underline underline-offset-2">API Reference tab</a> for exact endpoints, but understand this pattern:
-                    </p>
-                    <div className="rounded-sm border border-border p-4 bg-muted/10 mt-2 space-y-4">
-                        <div className="space-y-1">
-                            <p className="font-bold text-foreground">JWT Authentication</p>
-                            <p className="text-muted-foreground">Virtually all routes require an `<span className="font-mono bg-muted/30 px-1 rounded-sm text-[10px]">Authorization: Bearer &lt;YOUR_TOKEN&gt;</span>` header. Retrieve this via `POST /auth/login`.</p>
+                {/* 4. Client Apps */}
+                <SpecPanel id="client" title="4. Client Applications (REST & Websockets)" icon={RiWifiLine}>
+                    <div className="text-xs text-muted-foreground leading-relaxed space-y-6">
+                        <p>
+                            Device interfaces map to specific transport protocols based on operational requirements.
+                        </p>
+
+                        <div>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Observability via SSE (Server-Sent Events)</p>
+                            <p className="mb-2">Admin Dashboards or passive monitoring maps use a unidirectional <code className="text-[10px] font-mono text-foreground px-1 bg-muted/40">GET /events</code> endpoint. As MQTT telemetry hits the server, it multiplexes it down to connected browsers. It is lightweight, unidirectional, and strictly read-only.</p>
                         </div>
-                        <div className="space-y-1">
-                            <p className="font-bold text-foreground">Content-Type Policy</p>
-                            <p className="text-muted-foreground">Ensure `Content-Type: application/json` is set on mutating methods. If sending an empty POST body, `{ }` is acceptable.</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="font-bold text-foreground">Device Shadow Concept</p>
-                            <p className="text-muted-foreground">The backend isolates client requests and literal vehicle state. `GET /devices/:id/state` returns a `desired` side (actions you requested) and a `reported` side (what the physical device most recently broadcasted via MQTT).</p>
-                        </div>
-                    </div>
-                </GuideSection>
 
-                {/* Realtime streams */}
-                <GuideSection id="realtime" icon={RiWifiLine} title="7. Realtime_//_WebSocket_&_SSE">
-                    <p>
-                        Mobile and web clients leverage two distinct, persistent connections for distinct goals.
-                    </p>
-
-                    <p className="font-bold text-foreground mt-4 pb-1 border-b border-border">SSE (Server-Sent Events) - Read-Only Telemetry</p>
-                    <p className="mt-2 text-muted-foreground">
-                        Connect an `EventSource` to `GET /events?token=YOUR_JWT`. This stream provides unidirectional bursts formatted as `event: type \n data: JSON \n\n`. Events include `telemetry` updates, `device_online` metrics, and `session_change` pings.
-                    </p>
-
-                    <p className="font-bold text-foreground mt-6 pb-1 border-b border-border">WebSocket - Joystick Hot Path</p>
-                    <p className="mt-2 text-muted-foreground mb-2">
-                        You <strong>MUST</strong> explicitly grab a target session via `POST /session` before attempting to control it. Upgrading to `wss://BACKEND/control?token=YOUR_JWT` routes you to the zero-await joystick processor.
-                    </p>
-                    <p className="text-red-400 font-bold mb-2">IMPORTANT: The WebSocket JSON Payload Format</p>
-                    <CodeBlock lang="json" title="WebSocket Frame Payload">{`{
+                        <div>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground border-b border-border pb-1 mb-2">Active Control via WebSocket</p>
+                            <p className="mb-2">Applications requiring active navigation control utilize WebSockets. Connections require session verification via REST endpoints prior to initialization.</p>
+                            <ol className="list-decimal pl-4 space-y-2 mb-4">
+                                <li>Execute <code className="text-[10px] font-mono text-foreground px-1 bg-muted/40">POST /session</code> with a valid JWT. The backend sets the session mode in memory.</li>
+                                <li>Open a WebSocket to <code className="text-[10px] font-mono text-foreground px-1 bg-muted/40">wss://.../control?token=YOUR_JWT</code>.</li>
+                                <li>Transmit JSON payloads via the socket using the defined frame schema. Over-schema or invalid payloads are discarded.</li>
+                            </ol>
+                            <CodeBlock lang="json" title="WebSocket Frame Payload">{`{
   "type": "joystick",
   "payload": {
-    "throttle": 100,
-    "steering": -45
+    "throttle": 75,
+    "steering": -25
   }
 }`}</CodeBlock>
-                    <p className="text-muted-foreground mt-2">
-                        Failing to wrap your commands in the <code>{`{ type, payload }`}</code> schema will result in the backend silently discarding your message structure.
-                    </p>
-                </GuideSection>
-
-                {/* Authentication & Users */}
-                <GuideSection id="auth" icon={RiUserSettingsLine} title="8. Authentication_&_Users">
-                    <p>
-                        Access is rigidly segregated between regular app operators and superusers via Supabase JWT claims.
-                    </p>
-                    <ul className="list-disc pl-5 mt-4 space-y-2 marker:text-foreground text-muted-foreground">
-                        <li><strong>Superusers</strong> have unconditional system configuration access. The API `is_superuser` property evaluates true. These users cannot be registered via public APIs and must be seeded manually into Supabase.</li>
-                        <li><strong>Standard Users</strong> interface via the Mobile or Web clients. They cannot modify `users` resources, write to `config`, or register platforms via POST `devices`. They act exclusively as device operators.</li>
-                    </ul>
-                </GuideSection>
+                        </div>
+                        
+                        <div className="border border-border p-3 bg-muted/5 rounded-sm">
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground">System Roles</p>
+                            <p className="mt-2 text-muted-foreground"><strong>Superuser:</strong> Created only via CLI / seed. Grants global access to rewrite <code>telemetry_field_map</code>, DB configs, or user access.</p>
+                            <p className="mt-1 text-muted-foreground"><strong>Standard User:</strong> Registered through UI workflows. Used by Controller applications to get JWT tokens and acquire active driving sessions. Cannot manipulate configs.</p>
+                        </div>
+                    </div>
+                </SpecPanel>
 
             </div>
         </div>
@@ -338,13 +210,13 @@ function ReferenceTab({ token }: { token: string | null }) {
                     theme: 'kepler',
                     layout: 'classic',
                     hideModels: false,
-                    hideDownloadButton: false,
+                    hideDownloadButton: true,
                     forceDarkModeState: 'dark',
                     searchHotKey: 'k',
                     withDefaultFonts: false,
                     defaultHttpClient: {
-                        targetKey: 'shell',
-                        clientKey: 'curl',
+                        targetKey: 'js',
+                        clientKey: 'fetch',
                     },
                     authentication: {
                         preferredSecurityScheme: 'BearerAuth',
@@ -378,26 +250,10 @@ function ReferenceTab({ token }: { token: string | null }) {
 export default function DocsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('guides');
     const [token, setToken] = useState<string | null>(null);
-    const [isSuperuser, setIsSuperuser] = useState(false);
 
     // Sync token from auth-store
     useEffect(() => {
-        const syncAuth = () => {
-            const currentToken = getToken();
-            setToken(currentToken);
-
-            if (currentToken) {
-                try {
-                    const payload = JSON.parse(atob(currentToken.split('.')[1]));
-                    setIsSuperuser(payload.app_metadata?.is_superuser === true);
-                } catch (e) {
-                    setIsSuperuser(false);
-                }
-            } else {
-                setIsSuperuser(false);
-            }
-        };
-
+        const syncAuth = () => setToken(getToken());
         syncAuth();
         const interval = setInterval(syncAuth, 5000);
         return () => clearInterval(interval);
@@ -427,43 +283,26 @@ export default function DocsPage() {
                     )}
                 </div>
 
-                {/* Credentials Warning */}
-                <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-sans">
-                    ⚠ Do not share your access token or credentials. Endpoints are auth-protected.
-                </p>
             </div>
 
-            {/* Tab Switcher */}
-            <div className="flex gap-1 flex-shrink-0">
+            {/* Tab Navigation */}
+            <div className="flex gap-1 border-b border-border/50 pb-0.5 flex-shrink-0">
                 <button
                     onClick={() => setActiveTab('guides')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest font-sans transition-colors border ${activeTab === 'guides'
-                        ? 'bg-foreground text-background border-foreground'
-                        : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground'
-                        }`}
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest font-sans rounded-t-sm transition-colors ${activeTab === 'guides' ? 'bg-muted/30 text-foreground border-b-2 border-foreground' : 'text-muted-foreground hover:bg-muted/10'}`}
                 >
-                    <RiBookOpenLine size={14} />
-                    Guides
+                    Integration Guides
                 </button>
-
-                {isSuperuser && (
-                    <button
-                        onClick={() => setActiveTab('reference')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest font-sans transition-colors border ${activeTab === 'reference'
-                            ? 'bg-foreground text-background border-foreground'
-                            : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground'
-                            }`}
-                    >
-                        <RiCodeLine size={14} />
-                        API Reference
-                    </button>
-                )}
+                <button
+                    onClick={() => setActiveTab('reference')}
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest font-sans rounded-t-sm transition-colors ${activeTab === 'reference' ? 'bg-muted/30 text-foreground border-b-2 border-foreground' : 'text-muted-foreground hover:bg-muted/10'}`}
+                >
+                    API / Swagger Reference
+                </button>
             </div>
 
             {/* Tab Content */}
-            <div className="flex-1 overflow-hidden flex flex-col">
-                {activeTab === 'guides' ? <GuidesTab /> : <ReferenceTab token={token} />}
-            </div>
+            {activeTab === 'guides' ? <GuidesTab /> : <ReferenceTab token={token} />}
         </div>
     );
 }

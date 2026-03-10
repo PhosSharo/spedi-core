@@ -4,10 +4,10 @@ import { userService } from '../services/user.service';
 const UserResponseSchema = {
     type: 'object',
     properties: {
-        id: { type: 'string' },
-        email: { type: 'string' },
-        is_superuser: { type: 'boolean' },
-        created_at: { type: 'string' },
+        id: { type: 'string', format: 'uuid', example: 'd3b07384-d990-4e92-a034-927395c966f3' },
+        email: { type: 'string', format: 'email', example: 'standard-user@spedi.io' },
+        is_superuser: { type: 'boolean', example: false },
+        created_at: { type: 'string', format: 'date-time', example: '2024-03-20T14:30:00.000Z' },
     },
 };
 

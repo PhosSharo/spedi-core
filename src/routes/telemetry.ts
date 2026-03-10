@@ -18,13 +18,21 @@ const ErrorResponse = {
 const TelemetryRecord = {
     type: 'object',
     properties: {
-        id: { type: 'integer' },
-        device_id: { type: 'string' },
-        recorded_at: { type: 'string', format: 'date-time' },
+        id: { type: 'integer', example: 1042 },
+        device_id: { type: 'string', example: 'default' },
+        recorded_at: { type: 'string', format: 'date-time', example: '2024-03-20T14:30:00.000Z' },
         raw: {
             type: 'object',
             additionalProperties: true,
             description: 'Full raw telemetry payload as received from the device',
+            example: {
+                lat: 13.7563,
+                lng: 100.5018,
+                mode: 'manual',
+                obstacle_left: 45,
+                obstacle_right: 120,
+                smart_move_active: false
+            }
         },
     },
 };

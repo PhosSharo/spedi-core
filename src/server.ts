@@ -63,9 +63,27 @@ import swagger from '@fastify/swagger';
 fastify.register(swagger, {
     openapi: {
         info: {
-            title: 'SPEDI Platform API',
-            description: 'Backend API for the SPEDI autonomous boat orchestration platform.',
-            version: '1.0.0',
+            title: 'SPEDI Platform API //',
+            description: `
+IoT Orchestration Backend for the SPEDI autonomous vehicle system.
+
+### Architecture Overview
+SPEDI mediates between physical ESP32 devices, a Flutter mobile controller, and a Next.js admin dashboard.
+- **REST API**: Resource management (Devices, Users, Routes).
+- **SSC Stream**: Unidirectional live telemetry and system events (GET /events).
+- **WebSocket**: Bidirectional joystick hot-path (GET /control).
+
+### Authentication & RBAC
+- **Superuser**: Full administrative control. Account provisioning is restricted to direct DB/Seed.
+- **Standard User**: Restricted to Documentation access only.
+- **Service Role**: Required for administrative User Management operations.
+
+### Data Model
+The system follows the **Device Shadow** pattern (Desired vs reported state).
+- **Desired**: Commands sent from the platform to the device.
+- **Reported**: Real-time state ingested from the device via MQTT.
+`,
+            version: '1.0.4',
         },
         components: {
             securitySchemes: {
@@ -78,16 +96,16 @@ fastify.register(swagger, {
             },
         },
         tags: [
-            { name: 'Auth', description: 'Authentication endpoints' },
-            { name: 'Devices', description: 'Device management and shadow state' },
-            { name: 'Telemetry', description: 'Historical telemetry and live stream (SSE)' },
-            { name: 'Users', description: 'User account management (superuser)' },
-            { name: 'Sessions', description: 'Control session mutex' },
-            { name: 'Routes', description: 'Autonomous route management' },
-            { name: 'Config', description: 'System configuration (superuser)' },
-            { name: 'Realtime', description: 'SSE and WebSocket streams' },
-            { name: 'Debug', description: 'Simulation and diagnostic tools' },
-            { name: 'System', description: 'Health and diagnostics' },
+            { name: 'Auth', description: 'Supabase-integrated authentication. Handles JWT issuance and logout.' },
+            { name: 'Devices', description: 'Device registry and Shadow State (Desired/Reported) management.' },
+            { name: 'Telemetry', description: 'Historical telemetry logs and live stream ingestion details. Note: Use /events for live updates.' },
+            { name: 'Users', description: 'CRUD for standard accounts. Security Policy: Superusers cannot be created/promoted via API.' },
+            { name: 'Sessions', description: 'Device control mutex. Only one user can claim ownership of a device at a time.' },
+            { name: 'Routes', description: 'Autonomous mission planning. Requires multiple waypoints and device availability.' },
+            { name: 'Config', description: 'Runtime parameters. Updates trigger immediate MQTT re-connection and system hot-reload.' },
+            { name: 'Realtime', description: 'SSE (Server-Sent Events) and WebSocket endpoints. Require ?token=JWT query parameters.' },
+            { name: 'Debug', description: 'Developer tools. Includes the Telemetry Mock Injector for platform simulation.' },
+            { name: 'System', description: 'Platform health and diagnostics.' },
         ],
     },
 });

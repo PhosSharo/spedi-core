@@ -20,15 +20,15 @@ const WaypointSchema = {
 const RouteRecord = {
     type: 'object',
     properties: {
-        id: { type: 'string', format: 'uuid' },
-        device_id: { type: 'string', format: 'uuid' },
-        created_by: { type: 'string', format: 'uuid' },
-        name: { type: 'string' },
-        waypoints: { type: 'array', items: WaypointSchema },
-        status: { type: 'string', enum: ['draft', 'active', 'completed', 'aborted'] },
-        created_at: { type: 'string', format: 'date-time' },
-        dispatched_at: { type: 'string', format: 'date-time', nullable: true },
-        completed_at: { type: 'string', format: 'date-time', nullable: true },
+        id: { type: 'string', format: 'uuid', example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' },
+        device_id: { type: 'string', format: 'uuid', example: 'b0289f64-d3a9-467f-94a2-140682701416' },
+        created_by: { type: 'string', format: 'uuid', example: 'd3b07384-d990-4e92-a034-927395c966f3' },
+        name: { type: 'string', example: 'Riverside Patrol' },
+        waypoints: { type: 'array', items: WaypointSchema, example: [{ lat: 13.7563, lng: 100.5018 }, { lat: 13.7570, lng: 100.5025 }] },
+        status: { type: 'string', enum: ['draft', 'active', 'completed', 'aborted'], example: 'draft' },
+        created_at: { type: 'string', format: 'date-time', example: '2024-03-20T14:30:00.000Z' },
+        dispatched_at: { type: 'string', format: 'date-time', nullable: true, example: null },
+        completed_at: { type: 'string', format: 'date-time', nullable: true, example: null },
     },
 };
 

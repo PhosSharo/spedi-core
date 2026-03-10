@@ -85,6 +85,12 @@
 > Refined backend OpenAPI (Swagger) tags: added `Telemetry`, `Users`, `Debug`, and reassigned endpoints for better discovery.
 > Fixed JSX nesting and formatting issues in `app/docs/page.tsx`.
 
+43 | FEAT    | API Reference — Documentation Enrichment
+> Embedded high-level Architecture, RBAC, and Data Model guides into the OpenAPI `info.description`.
+> Detailed all Swagger tags with security policies, simulation instructions, and connection lifecycles.
+> Added comprehensive JSON examples to `Telemetry`, `Users`, `Config`, and `Routes` schemas.
+> Ensured the API reference is self-documenting and mirrors the manual guides.
+
 16 | FEAT    | Implemented Dashboard Config Manager Page
 > Created /config route in Next.js App Router for configuration management.
 > Implemented superuser protection and automatic redirect for unauthorized users.

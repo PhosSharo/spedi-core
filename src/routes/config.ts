@@ -12,12 +12,12 @@ const ErrorResponse = {
 const ConfigEntry = {
     type: 'object',
     properties: {
-        id: { type: 'number' },
-        key: { type: 'string' },
-        value: { type: 'string' },
-        description: { type: 'string', nullable: true },
-        updated_at: { type: 'string', format: 'date-time' },
-        updated_by: { type: 'string', format: 'uuid', nullable: true },
+        id: { type: 'number', example: 1 },
+        key: { type: 'string', example: 'telemetry_interval_ms' },
+        value: { type: 'string', example: '1000' },
+        description: { type: 'string', nullable: true, example: 'Frequency of telemetry updates from the device' },
+        updated_at: { type: 'string', format: 'date-time', example: '2024-03-20T14:30:00.000Z' },
+        updated_by: { type: 'string', format: 'uuid', nullable: true, example: 'd3b07384-d990-4e92-a034-927395c966f3' },
     },
 };
 

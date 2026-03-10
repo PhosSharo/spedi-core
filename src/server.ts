@@ -91,26 +91,8 @@ fastify.register(swagger, {
     openapi: {
         info: {
             title: 'SPEDI Platform API //',
-            description: `
-IoT Orchestration Backend for the SPEDI autonomous vehicle system.
-
-### Architecture Overview
-SPEDI mediates between physical ESP32 devices, a Flutter mobile controller, and a Next.js admin dashboard.
-- **REST API**: Resource management (Devices, Users, Routes).
-- **SSC Stream**: Unidirectional live telemetry and system events (GET /events).
-- **WebSocket**: Bidirectional joystick hot-path (GET /control).
-
-### Authentication & RBAC
-- **Superuser**: Full administrative control. Account provisioning is restricted to direct DB/Seed.
-- **Standard User**: Restricted to Documentation access only.
-- **Service Role**: Required for administrative User Management operations.
-
-### Data Model
-The system follows the **Device Shadow** pattern (Desired vs reported state).
-- **Desired**: Commands sent from the platform to the device.
-- **Reported**: Real-time state ingested from the device via MQTT.
-`,
-            version: '1.0.4',
+            description: 'IoT orchestration backend for the SPEDI autonomous vehicle system. Refer to the Integration Guides tab for architecture, data flow, and client-specific documentation.',
+            version: '1.0.5',
         },
         components: {
             securitySchemes: {
@@ -123,17 +105,17 @@ The system follows the **Device Shadow** pattern (Desired vs reported state).
             },
         },
         tags: [
-            { name: 'Auth', description: 'Supabase-integrated authentication. Handles JWT issuance and logout.' },
-            { name: 'Devices', description: 'Device registry and Shadow State (Desired/Reported) management.' },
-            { name: 'Telemetry', description: 'Historical telemetry logs and live stream ingestion details. Note: Use /events for live updates.' },
-            { name: 'Users', description: 'CRUD for standard accounts. Security Policy: Superusers cannot be created/promoted via API.' },
-            { name: 'Sessions', description: 'Device control mutex. Only one user can claim ownership of a device at a time.' },
-            { name: 'Routes', description: 'Autonomous mission planning. Requires multiple waypoints and device availability.' },
-            { name: 'Config', description: 'Runtime parameters. Updates trigger immediate MQTT re-connection and system hot-reload.' },
-            { name: 'Realtime', description: 'SSE (Server-Sent Events) and WebSocket endpoints. Require ?token=JWT query parameters.' },
-            { name: 'Debug', description: 'Developer tools. Includes the Telemetry Mock Injector for platform simulation.' },
-            { name: 'System', description: 'Platform health and diagnostics.' },
-            { name: 'Camera', description: 'Latest snapshot from the active ESP32-CAM.' },
+            { name: 'Auth', description: 'JWT issuance, logout, and profile retrieval.' },
+            { name: 'Devices', description: 'Device registry and in-memory Shadow State management.' },
+            { name: 'Telemetry', description: 'Historical telemetry query with cursor-based pagination.' },
+            { name: 'Users', description: 'Standard account CRUD. Superuser promotion is restricted to direct DB access.' },
+            { name: 'Sessions', description: 'Device control mutex. One session per user, one per device.' },
+            { name: 'Routes', description: 'Autonomous route lifecycle: draft, dispatch, abort, complete.' },
+            { name: 'Config', description: 'Runtime parameters with hot-reload on MQTT-related changes.' },
+            { name: 'Realtime', description: 'SSE event stream and WebSocket joystick control.' },
+            { name: 'Debug', description: 'Telemetry mock injector for platform simulation.' },
+            { name: 'System', description: 'Health check and diagnostics.' },
+            { name: 'Camera', description: 'Latest ESP32-CAM snapshot retrieval.' },
         ],
     },
 });

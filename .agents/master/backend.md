@@ -1,7 +1,7 @@
-﻿# SPEDI Backend Design Document
+# SPEDI Backend Design Document
 
 **Stack:** Node.js 20 + Fastify — Mosquitto on Railway — Supabase PostgreSQL + Auth — Next.js dashboard on Vercel  
-**Status:** Pre-build. Authoritative reference.
+**Status:** In Development. Core architecture and real-time visualization active.
 
 ---
 
@@ -113,7 +113,7 @@ Flat key-value. All values stored as text; application layer parses. Known keys:
 ### Realtime
 | Protocol | Path | Auth | Notes |
 |----------|------|------|-------|
-| SSE | `/events` | required | Telemetry stream for dashboard. Flushes current shadow on connect. Event types: `telemetry`, `session_change`, `device_online`, `device_offline`. |
+| SSE | `/events` | required | Unified event stream for dashboard. Managed via `SseProvider`. Event types: `telemetry` (full payload), `syslog` (formatted logs), `session_change`, `device_online`, `device_offline`. |
 | WebSocket | `/control?token=JWT` | JWT in query param | Flutter app only. Joystick in: `{type:"joystick", payload:{throttle, steering}}`. Validated once on connect. |
 
 ---
@@ -143,7 +143,9 @@ WebSocket uses `?token=` query param â€” browser WebSocket implementations 
 
 **RouteService** â€” owns route persistence, dispatch precondition validation, and completion detection. Triggers async DB updates from telemetry events.
 
-**TelemetryService** â€” ingests MQTT payloads. Enforces `telemetry_max_payload_bytes` size limit. Updates `reported` synchronously via DeviceService (which applies the field mapping). Fires async: DB insert, `last_seen_at` update, SSE broadcast, RouteService notification.
+**TelemetryService** — ingests MQTT payloads. Enforces `telemetry_max_payload_bytes` size limit. Updates `reported` synchronously via DeviceService (which applies the field mapping). Fires async: DB insert, `last_seen_at` update, SSE broadcast (via SseService), RouteService notification.
+
+**SseService** — manages the unified Server-Sent Events stream. Handles heartbeats, client lifecycle, and broadcasting of typed payloads (`telemetry`, `syslog`, `device_online`, etc.) to the dashboard. Ensures `X-Accel-Buffering: no` is set for zero-latency streaming through proxies.
 
 **ConfigService** â€” loads config at startup. Exposes `get(key)`. Hot-reloads affected services on PUT /config.
 

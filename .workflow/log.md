@@ -338,3 +338,9 @@
 > Removed hardcoded `DEFAULT_CENTER` coordinates.
 > Initial map center resolves via: `localStorage` (last tick) > Shadow state fetch > Region default (Gulf of Thailand).
 > Persists real-time coordinates to `localStorage` on every telemetry pulse.
+
+64 | FEAT    | Documentation Overhaul — Sectioned Integration Guides 
+> Rewrote `app/docs/page.tsx` with 6 audience-specific reference sections.
+> Implemented section-based navigation via selectable sidebar with CSS `hidden` toggles.
+> Cleaned up redundant Architecture/RBAC/Data Model content from OpenAPI description in `src/server.ts`.
+> Bumped platform API version to v1.0.5 and verified production build integrity.

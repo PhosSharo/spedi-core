@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { logService } from './log.service';
 
 export interface ConfigRow {
     id: number;
@@ -78,6 +79,7 @@ export class ConfigService {
             }
         }
         console.log(`✅ ConfigService: Updated ${updates.length} keys by user ${userId}.`);
+        logService.info('system', 'config', `Configuration updated (${updates.length} keys)`, { keys: updates.map(u => u.key) });
     }
 
     /**

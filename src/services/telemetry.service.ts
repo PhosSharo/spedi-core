@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { deviceService } from './device.service';
+import { configService } from './config.service';
+import { logService } from './log.service';
 
 /**
  * TelemetryService — Ingestion pipeline for device MQTT payloads.
@@ -57,11 +59,20 @@ export class TelemetryService {
      * @param payload The raw Buffer from MQTT
      */
     ingest(topic: string, payload: Buffer): void {
+        // ── Size guard ───────────────────────────────────────────
+        const maxBytes = parseInt(configService.get('telemetry_max_payload_bytes') || '4096', 10);
+        if (payload.length > maxBytes) {
+            logService.warn('arduino', 'telemetry', `Payload too large, dropping (${payload.length} bytes)`, { topic, limit: maxBytes });
+            console.warn(`TelemetryService: Payload too large (${payload.length} bytes > ${maxBytes} limit), dropping.`, { topic });
+            return;
+        }
+
         // ── Parse ────────────────────────────────────────────────
         let parsed: Record<string, any>;
         try {
             parsed = JSON.parse(payload.toString());
         } catch {
+            logService.error('arduino', 'telemetry', 'Received non-JSON payload, dropping', { topic });
             console.warn('TelemetryService: Received non-JSON payload, dropping.', {
                 topic,
                 raw: payload.toString().substring(0, 200),
@@ -74,9 +85,12 @@ export class TelemetryService {
         // or we derive it from the topic structure.
         const deviceId = this.resolveDeviceId(topic, parsed);
         if (!deviceId) {
+            logService.warn('arduino', 'telemetry', 'Could not resolve device ID from telemetry payload', { topic });
             console.warn('TelemetryService: Could not resolve device ID, dropping.', { topic });
             return;
         }
+
+        logService.info('arduino', 'telemetry', 'Ingested device telemetry', { deviceId });
 
         // ── Synchronous pipeline (in-memory, zero DB) ────────────
 

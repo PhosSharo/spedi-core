@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import 'dotenv/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { deviceService } from './device.service';
+import { logService } from './log.service';
 
 /**
  * SessionService — In-memory session mutex with DB persistence.
@@ -136,6 +137,8 @@ export class SessionService extends EventEmitter {
         // Emit change event
         this.emit('session_change', deviceId, session);
 
+        logService.info('mobile', 'session', `Manual control session started on device ${deviceId}`, { userId });
+
         return session;
     }
 
@@ -166,6 +169,8 @@ export class SessionService extends EventEmitter {
         // Emit change event
         this.emit('session_change', deviceId, null);
 
+        logService.info('mobile', 'session', `Manual control session closed on device ${deviceId}`, { userId, reason });
+
         // Async DB update — fire and forget
         this.supabase
             .from('sessions')
@@ -195,10 +200,12 @@ export class SessionService extends EventEmitter {
         if (!session) return;
 
         console.log(`⏱️ SessionService: Grace period started for device ${deviceId} (${GRACE_PERIOD_MS}ms)`);
+        logService.warn('system', 'session', `Websocket disconnected. Grace period started for device ${deviceId}`);
 
         const timer = setTimeout(() => {
             this.graceTimers.delete(deviceId);
             console.log(`⏱️ SessionService: Grace period expired for device ${deviceId} — closing session.`);
+            logService.error('system', 'session', `Grace period expired for device ${deviceId} — closing session.`);
             this.close(session.userId, 'timeout');
         }, GRACE_PERIOD_MS);
 
@@ -215,6 +222,7 @@ export class SessionService extends EventEmitter {
             clearTimeout(timer);
             this.graceTimers.delete(deviceId);
             console.log(`⏱️ SessionService: Grace period cancelled for device ${deviceId}`);
+            logService.info('system', 'session', `Websocket reconnected. Grace period cancelled for device ${deviceId}`);
         }
     }
 
@@ -243,6 +251,7 @@ export class SessionService extends EventEmitter {
         const count = data?.length ?? 0;
         if (count > 0) {
             console.log(`🧹 SessionService: Closed ${count} orphaned session(s) from previous run.`);
+            logService.info('system', 'session', `Closed ${count} orphaned session(s) from previous run.`);
         }
     }
 }

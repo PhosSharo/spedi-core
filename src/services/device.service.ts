@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { configService } from './config.service';
 
 export interface DeviceRecord {
     id: string;
@@ -22,15 +23,12 @@ export interface DeviceShadow {
         route: Array<{ lat: number; lng: number }> | null;
         [key: string]: any;
     };
-    reported: {
-        mode: string | null;
-        lat: number | null;
-        lng: number | null;
-        obstacle_left: number | null;
-        obstacle_right: number | null;
-        smart_move_active: boolean | null;
-        waypoint_index: number | null;
-    };
+    /**
+     * Dynamic key-value store. Field names are driven by the
+     * `telemetry_field_map` config entry. If no mapping is configured,
+     * all payload keys pass through directly (tolerant reader).
+     */
+    reported: Record<string, any>;
 }
 
 export interface DeviceState {
@@ -85,32 +83,43 @@ export class DeviceService {
                     steering: 0,
                     route: null,
                 },
-                reported: {
-                    mode: null,
-                    lat: null,
-                    lng: null,
-                    obstacle_left: null,
-                    obstacle_right: null,
-                    smart_move_active: null,
-                    waypoint_index: null,
-                },
+                reported: {},
             };
             this.shadows.set(deviceId, shadow);
         }
         return shadow;
     }
 
+    /**
+     * Update the reported side of the shadow from an incoming telemetry payload.
+     *
+     * If `telemetry_field_map` is configured, it controls which device keys
+     * are extracted and what shadow keys they map to. Format:
+     *   { "device_payload_key": "shadow_key", ... }
+     *
+     * If no mapping is configured, ALL payload keys merge directly into
+     * the shadow (full passthrough — tolerant reader default).
+     */
     updateReported(deviceId: string, payload: Record<string, any>): void {
         const shadow = this.getOrCreateShadow(deviceId);
+        const mappingRaw = configService.get('telemetry_field_map');
 
-        // Tolerant reader: extract only known fields into typed properties, ignore the rest.
-        if (payload.mode !== undefined) shadow.reported.mode = String(payload.mode);
-        if (payload.lat !== undefined) shadow.reported.lat = Number(payload.lat);
-        if (payload.lng !== undefined) shadow.reported.lng = Number(payload.lng);
-        if (payload.obstacle_left !== undefined) shadow.reported.obstacle_left = Number(payload.obstacle_left);
-        if (payload.obstacle_right !== undefined) shadow.reported.obstacle_right = Number(payload.obstacle_right);
-        if (payload.smart_move_active !== undefined) shadow.reported.smart_move_active = Boolean(payload.smart_move_active);
-        if (payload.waypoint_index !== undefined) shadow.reported.waypoint_index = Number(payload.waypoint_index);
+        if (mappingRaw) {
+            try {
+                const map: Record<string, string> = JSON.parse(mappingRaw);
+                for (const [deviceKey, shadowKey] of Object.entries(map)) {
+                    if (payload[deviceKey] !== undefined) {
+                        shadow.reported[shadowKey] = payload[deviceKey];
+                    }
+                }
+            } catch {
+                // Malformed mapping — fall back to passthrough
+                Object.assign(shadow.reported, payload);
+            }
+        } else {
+            // No mapping configured — passthrough all keys
+            Object.assign(shadow.reported, payload);
+        }
     }
 
     /**

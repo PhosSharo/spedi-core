@@ -43,6 +43,8 @@ import { deviceService } from './services/device.service';
 import { sessionService } from './services/session.service';
 import { telemetryService } from './services/telemetry.service';
 import { sseService } from './services/sse.service';
+import { cameraService } from './services/camera.service';
+import { logService } from './services/log.service';
 import realtimeRoutes from './routes/realtime';
 import controlRoutes from './routes/control';
 import sessionRoutes from './routes/session';
@@ -133,8 +135,9 @@ const start = async () => {
             routeService.onTelemetry(deviceId, reported);
         });
 
-        // Wire SSE to MQTT device connection events
+        // Wire SSE and Logger to MQTT device connection events
         mqttService.on('device_online', (deviceId) => {
+            logService.info('arduino', 'connection', 'Device (Arduino) reconnected to MQTT broker');
             sseService.broadcast({
                 type: 'device_online',
                 deviceId,
@@ -143,6 +146,7 @@ const start = async () => {
         });
 
         mqttService.on('device_offline', (deviceId) => {
+            logService.warn('arduino', 'connection', 'Device (Arduino) disconnected from MQTT broker');
             sseService.broadcast({
                 type: 'device_offline',
                 deviceId,
@@ -161,7 +165,13 @@ const start = async () => {
 
         // 6. MQTTClient connects (after config is available)
         fastify.log.info('Connecting to MQTT broker...');
-        mqttService.onMessage((topic, payload) => telemetryService.ingest(topic, payload));
+        mqttService.onMessage((topic, payload) => {
+            if (topic === mqttService.topicCamera) {
+                cameraService.ingest(topic, payload);
+            } else {
+                telemetryService.ingest(topic, payload);
+            }
+        });
         mqttService.connect().catch(e => fastify.log.warn('MQTT connection failed on startup, will retry.'));
         fastify.log.info('MQTT broker connection initiated.');
 

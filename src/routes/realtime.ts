@@ -2,6 +2,8 @@ import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { randomUUID } from 'crypto';
 import { sseService } from '../services/sse.service';
 import { deviceService } from '../services/device.service';
+import { logService } from '../services/log.service';
+import { cameraService } from '../services/camera.service';
 
 const realtimeRoutes: FastifyPluginAsync = async (fastify) => {
     /**
@@ -13,7 +15,7 @@ const realtimeRoutes: FastifyPluginAsync = async (fastify) => {
         schema: {
             tags: ['Realtime'],
             summary: 'SSE event stream',
-            description: 'Establishes a persistent Server-Sent Events connection. Streams telemetry, device_online/offline, and session_change events. On connection, flushes current shadow state for all registered devices.',
+            description: 'Establishes a persistent Server-Sent Events connection. Streams telemetry, device_online/offline, session_change, syslog, and camera_snapshot events. On connection, flushes current shadow state, log history, and latest camera snapshot.',
             security: [{ BearerAuth: [] }],
             querystring: {
                 type: 'object',
@@ -47,6 +49,31 @@ const realtimeRoutes: FastifyPluginAsync = async (fastify) => {
                     });
                 }
             }
+
+            // Flush recent system logs
+            const recentLogs = logService.getRecentLogs();
+            // Send in reverse so oldest arrives first, or just send array? 
+            // The dashboard expects individual events. We'll send them oldest-first
+            // so the frontend appends them naturally.
+            for (let i = recentLogs.length - 1; i >= 0; i--) {
+                sseService.sendToClient(connectionId, {
+                    type: 'syslog',
+                    payload: recentLogs[i]
+                });
+            }
+
+            // Flush latest camera snapshot if available
+            const snapshot = cameraService.getLatestSnapshot();
+            if (snapshot) {
+                sseService.sendToClient(connectionId, {
+                    type: 'camera_snapshot',
+                    payload: {
+                        timestamp: new Date().toISOString(), // Or store actual snapshot time
+                        dataUri: snapshot
+                    }
+                });
+            }
+
         } catch (err: any) {
             request.log.error(err, 'Failed to flush initial state for new SSE client');
         }

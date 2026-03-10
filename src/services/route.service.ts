@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { deviceService } from './device.service';
 import { sessionService } from './session.service';
+import { logService } from './log.service';
 
 /**
  * RouteService — Autonomous route dispatch and completion detection.
@@ -121,6 +122,7 @@ export class RouteService {
         });
 
         console.log(`🗺️ RouteService: Dispatched route ${routeId} on device ${route.device_id}`);
+        logService.info('mobile', 'route', `Dispatched route ${route.name}`, { routeId, deviceId: route.device_id });
 
         return updated;
     }
@@ -163,6 +165,7 @@ export class RouteService {
         this.activeRoutes.delete(route.device_id);
 
         console.log(`🗺️ RouteService: Aborted route ${routeId} on device ${route.device_id}`);
+        logService.warn('mobile', 'route', `Aborted route ${route.name}`, { routeId, deviceId: route.device_id });
     }
 
     // ── Telemetry completion detection ───────────────────────────
@@ -188,6 +191,7 @@ export class RouteService {
         // Detect true → false transition
         if (prev === true && current === false) {
             console.log(`🗺️ RouteService: autopilot_active went false for device ${deviceId} — completing route ${tracked.routeId}`);
+            logService.info('system', 'route', `Autopilot deactivated on device — completing route`, { routeId: tracked.routeId, deviceId });
 
             const routeId = tracked.routeId;
 

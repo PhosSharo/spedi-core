@@ -38,10 +38,10 @@ One active session per device at a time. Enforced in application layer, not DB c
 `waypoints` is JSONB array of `{lat, lng}` â€” always read/written as a unit, never partially updated. `status` values: `draft`, `active`, `completed`, `aborted`. One `active` route per device enforced in application layer.
 
 **telemetry** `id bigserial, device_idâ†’devices, recorded_at, raw jsonb`  
-Append-only. `raw` stores the full device payload verbatim. This is the truest form of the Tolerant Reader pattern: no device-sent fields are presumed stable. Querying values like GPS or obstacle readings is done via JSONB operators (e.g., `raw->>'lat'`). When a field stabilizes and requires indexing, it is promoted to a generated column or a typed column via migration.
+Append-only. `raw` stores the full device payload verbatim. This is the truest form of the Tolerant Reader pattern: no device-sent fields are presumed stable. Querying values like GPS or obstacle readings is done via JSONB operators (e.g., `raw->>'lat'`). When a field stabilizes and requires indexing, it is promoted to a generated column or a typed column via migration. Payloads exceeding the configurable `telemetry_max_payload_bytes` limit are silently dropped at ingestion.
 
 **config** `id serial, key unique, value text, description, updated_at, updated_byâ†’users`  
-Flat key-value. All values stored as text; application layer parses. Known keys: `mqtt_broker_host`, `mqtt_broker_port`, `mqtt_topic_joystick`, `mqtt_topic_route`, `mqtt_topic_status`, `joystick_timeout_ms`, `telemetry_interval_ms`.
+Flat key-value. All values stored as text; application layer parses. Known keys: `mqtt_broker_host`, `mqtt_broker_port`, `mqtt_topic_joystick`, `mqtt_topic_route`, `mqtt_topic_status`, `joystick_timeout_ms`, `telemetry_interval_ms`, `telemetry_field_map` (JSON: maps device payload keys to shadow keys), `telemetry_max_payload_bytes` (integer: max payload size, default 4096).
 
 ---
 
@@ -114,13 +114,13 @@ WebSocket uses `?token=` query param â€” browser WebSocket implementations 
 
 **AuthService** â€” wraps Supabase Auth. Exposes `verify(token)`. Stateless.
 
-**DeviceService** â€” owns in-memory shadow `{desired, reported}`. Single mutation point. Exposes `getState()`, `setDesired(partial)`, `updateReported(payload)`, `publishJoystick(payload)`, `publishRoute(action, waypoints)`.
+**DeviceService** â€” owns in-memory shadow `{desired, reported}`. Single mutation point. The `reported` side is a dynamic `Record<string, any>` driven by the `telemetry_field_map` config entry. If a mapping is configured, only mapped device keys are extracted; otherwise all keys pass through (tolerant reader). Exposes `getState()`, `setDesired(partial)`, `updateReported(payload)`, `publishJoystick(payload)`, `publishRoute(action, waypoints)`.
 
 **SessionService** â€” owns session lifecycle and in-memory session map. Exposes `open(userId, deviceId)`, `close(userId, reason)`, `getActive(deviceId)`, `isActive(userId)`. Cleans orphaned sessions on startup.
 
 **RouteService** â€” owns route persistence, dispatch precondition validation, and completion detection. Triggers async DB updates from telemetry events.
 
-**TelemetryService** â€” ingests MQTT payloads. Updates `reported` synchronously. Fires async: DB insert, `last_seen_at` update, SSE broadcast, RouteService notification.
+**TelemetryService** â€” ingests MQTT payloads. Enforces `telemetry_max_payload_bytes` size limit. Updates `reported` synchronously via DeviceService (which applies the field mapping). Fires async: DB insert, `last_seen_at` update, SSE broadcast, RouteService notification.
 
 **ConfigService** â€” loads config at startup. Exposes `get(key)`. Hot-reloads affected services on PUT /config.
 

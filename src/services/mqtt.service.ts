@@ -1,6 +1,7 @@
 import mqtt, { MqttClient, IClientOptions } from 'mqtt';
 import { EventEmitter } from 'events';
 import { configService } from './config.service';
+import { logService } from './log.service';
 
 /**
  * MqttService — Infrastructure wrapper around MQTT.js.
@@ -20,6 +21,7 @@ const KEY_BROKER_PORT = 'mqtt_broker_port';
 const KEY_TOPIC_JOYSTICK = 'mqtt_topic_joystick';
 const KEY_TOPIC_ROUTE = 'mqtt_topic_route';
 const KEY_TOPIC_STATUS = 'mqtt_topic_status';
+const KEY_TOPIC_CAMERA = 'mqtt_topic_camera';
 
 export type MqttMessageHandler = (topic: string, payload: Buffer) => void;
 
@@ -37,6 +39,7 @@ export class MqttService extends EventEmitter {
     private topicJoystick = '';
     private topicRoute = '';
     private topicStatus = '';
+    public topicCamera = '';
 
     /**
      * Connect to the MQTT broker.
@@ -57,9 +60,10 @@ export class MqttService extends EventEmitter {
         this.topicJoystick = configService.get(KEY_TOPIC_JOYSTICK) || 'spedi/vehicle/joystick';
         this.topicRoute = configService.get(KEY_TOPIC_ROUTE) || 'spedi/vehicle/route';
         this.topicStatus = configService.get(KEY_TOPIC_STATUS) || 'spedi/vehicle/status';
+        this.topicCamera = configService.get(KEY_TOPIC_CAMERA) || 'spedi/vehicle/camera';
 
         // Topics the server subscribes to (read-only per ACL)
-        this.subscribeTopics = [this.topicStatus];
+        this.subscribeTopics = [this.topicStatus, this.topicCamera];
 
         // Connection credentials from environment (connection-level secrets)
         const username = process.env.MQTT_USERNAME || 'server';
@@ -85,6 +89,7 @@ export class MqttService extends EventEmitter {
 
             this.client.on('connect', () => {
                 this.reconnectAttempts = 0;
+                logService.info('system', 'connection', `Connected to MQTT broker: ${host}:${port}`);
                 console.log(`✅ MqttService: Connected to ${brokerUrl}`);
                 this.subscribeAll();
                 this.emit('device_online');
@@ -98,12 +103,14 @@ export class MqttService extends EventEmitter {
             });
 
             this.client.on('close', () => {
+                logService.warn('system', 'connection', 'MQTT Connection closed. Will attempt reconnect.');
                 console.warn('⚠️ MqttService: Connection closed.');
                 this.emit('device_offline');
                 this.scheduleReconnect(brokerUrl, options);
             });
 
             this.client.on('error', (err: Error) => {
+                logService.error('system', 'connection', 'MQTT Connection error', { error: err.message });
                 console.error('❌ MqttService: Connection error:', err.message);
                 // Don't reject after initial connect succeeds
             });

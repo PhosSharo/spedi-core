@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { RiRobot2Line, RiSettings4Line, RiLoader4Line, RiLogoutBoxRLine, RiSave3Line, RiCloseLine, RiEdit2Line } from "@remixicon/react";
+import { RiRobot2Line, RiSettings4Line, RiLoader4Line, RiLogoutBoxRLine, RiSave3Line, RiCloseLine, RiEdit2Line, RiCheckLine } from "@remixicon/react";
 import { apiFetch } from '@/lib/api';
 
 interface ConfigRow {
@@ -19,6 +19,7 @@ export default function ConfigManager() {
     const [editValue, setEditValue] = useState<string>('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchConfig = async () => {
@@ -54,6 +55,7 @@ export default function ConfigManager() {
     const handleSave = async (key: string) => {
         setSaving(true);
         setError(null);
+        setSuccess(null);
         try {
             const res = await apiFetch('/config', {
                 method: 'PUT',
@@ -74,6 +76,12 @@ export default function ConfigManager() {
             ));
 
             setEditingKey(null);
+            setSuccess('Configuration saved. The backend is reloading to apply changes; this may take a few seconds.');
+
+            // Auto-hide success message after 5 seconds
+            setTimeout(() => {
+                setSuccess(null);
+            }, 5000);
 
         } catch (err: any) {
             setError(err.message);
@@ -95,6 +103,13 @@ export default function ConfigManager() {
                 <div className="rounded-sm bg-foreground text-background border border-foreground p-3 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 font-sans">
                     <RiCloseLine size={16} />
                     {error}
+                </div>
+            )}
+
+            {success && (
+                <div className="rounded-sm bg-background text-foreground border border-foreground p-3 text-[10px] uppercase font-sans tracking-widest flex items-center gap-2">
+                    <RiCheckLine size={16} />
+                    {success}
                 </div>
             )}
 

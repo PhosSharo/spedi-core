@@ -1,9 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 
 export interface SseEvent {
-    type: 'telemetry' | 'session_change' | 'device_online' | 'device_offline';
-    deviceId: string;
-    payload: Record<string, any>;
+    type: 'telemetry' | 'session_change' | 'device_online' | 'device_offline' | 'syslog' | 'camera_snapshot';
+    deviceId?: string;
+    payload: Record<string, any> | any;
 }
 
 class SseService {

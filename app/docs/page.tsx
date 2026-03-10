@@ -156,7 +156,10 @@ function GuidesTab() {
                         Devices communicate via MQTT, not HTTP. The ESP32 connects to the Mosquitto broker and subscribes to command topics. The backend is the sole publisher to these topics.
                     </p>
 
-                    <p className="font-bold text-foreground">MQTT Topics</p>
+                    <p className="font-bold text-foreground">Configurable MQTT Topics</p>
+                    <p className="mb-2">
+                        The backend subscribes to and publishes on topics defined dynamically in the Configuration table. The defaults are shown below, but they can be customized via the Dashboard.
+                    </p>
                     <div className="rounded-sm border border-border overflow-hidden">
                         <table className="w-full text-[10px] font-mono">
                             <thead><tr className="bg-muted/30 border-b border-border">
@@ -167,7 +170,8 @@ function GuidesTab() {
                             <tbody>
                                 <tr className="border-b border-border/50"><td className="p-2">spedi/vehicle/joystick</td><td className="p-2">Server → Device</td><td className="p-2">{`{ throttle, steering }`}</td></tr>
                                 <tr className="border-b border-border/50"><td className="p-2">spedi/vehicle/route</td><td className="p-2">Server → Device</td><td className="p-2">{`{ action, waypoints[] }`}</td></tr>
-                                <tr><td className="p-2">spedi/vehicle/status</td><td className="p-2">Device → Server</td><td className="p-2">{`{ lat, lng, obstacles, mode, ... }`}</td></tr>
+                                <tr className="border-b border-border/50"><td className="p-2">spedi/vehicle/status</td><td className="p-2">Device → Server</td><td className="p-2">{`{ lat, lng, obstacles, mode, ... }`}</td></tr>
+                                <tr><td className="p-2">spedi/vehicle/camera</td><td className="p-2">Device → Server</td><td className="p-2">Binary JPEG buffer</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -209,6 +213,27 @@ void publishTelemetry() {
                         <RiAlertLine size={12} className="text-foreground mt-0.5 flex-shrink-0" />
                         <p><strong>Timeout:</strong> The device stops motors if no joystick command arrives within 2000ms. The server must maintain a stable publish cadence during manual control.</p>
                     </div>
+
+                    <p className="font-bold text-foreground">Telemetry Field Mapping</p>
+                    <p>
+                        The backend does <strong>not</strong> hardcode telemetry field names. A superuser-configurable <Label>telemetry_field_map</Label> entry in the Config table maps device payload keys to shadow keys. This means you can rename fields in your Arduino code without breaking the backend.
+                    </p>
+                    <CodeBlock lang="json" title="Config: telemetry_field_map (example)">{`{
+  "lat": "lat",
+  "lng": "lng",
+  "obstacle_left": "obstacle_left",
+  "obstacle_right": "obstacle_right",
+  "smart_move": "smart_move_active",
+  "waypoint_index": "waypoint_index"
+}`}</CodeBlock>
+                    <p className="text-muted-foreground">
+                        If you rename <code className="font-mono text-[10px] bg-muted/30 px-1 rounded-sm">obstacle_left</code> to <code className="font-mono text-[10px] bg-muted/30 px-1 rounded-sm">sonar_left</code> in your Arduino code, simply update the mapping: <code className="font-mono text-[10px] bg-muted/30 px-1 rounded-sm">{`"sonar_left": "obstacle_left"`}</code>. If no mapping is configured, all payload keys pass through directly.
+                    </p>
+
+                    <p className="font-bold text-foreground">Payload Size Limits</p>
+                    <p>
+                        Payloads exceeding <Label>telemetry_max_payload_bytes</Label> (default 4096) for the status topic, or <Label>camera_max_payload_bytes</Label> (default 256000) for the camera topic, are silently dropped. Keep telemetry lightweight. Continuous video streaming is not supported; only occasional JPEG snapshots should be sent to the camera topic.
+                    </p>
                 </GuideSection>
 
                 {/* Mobile Integration */}
@@ -345,6 +370,7 @@ function ReferenceTab({ token }: { token: string | null }) {
                     hideDownloadButton: false,
                     forceDarkModeState: 'dark',
                     searchHotKey: 'k',
+                    withDefaultFonts: false,
                     defaultHttpClient: {
                         targetKey: 'shell',
                         clientKey: 'curl',
@@ -357,6 +383,20 @@ function ReferenceTab({ token }: { token: string | null }) {
                             },
                         },
                     },
+                    customCss: `
+                        .scalar-app {
+                            --scalar-background-1: #09090b;
+                            --scalar-background-2: #18181b;
+                            --scalar-background-3: #27272a;
+                            --scalar-color-1: #fafafa;
+                            --scalar-color-2: #a1a1aa;
+                            --scalar-color-3: #71717a;
+                            --scalar-color-accent: #fafafa;
+                            --scalar-border-color: #27272a;
+                            --scalar-font: 'DM Sans', sans-serif;
+                            --scalar-font-code: 'JetBrains Mono', monospace;
+                        }
+                    `,
                 }}
             />
         </div>
@@ -400,6 +440,11 @@ export default function DocsPage() {
                         </span>
                     )}
                 </div>
+
+                {/* Credentials Warning */}
+                <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-sans">
+                    ⚠ Do not share your access token or credentials. Endpoints are auth-protected.
+                </p>
             </div>
 
             {/* Tab Switcher */}

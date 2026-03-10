@@ -143,19 +143,19 @@ fastify.get('/openapi.json', { schema: { hide: true } }, async () => {
     return fastify.swagger();
 });
 
-// Register routes
-fastify.register(healthRoutes);
-fastify.register(authRoutes);
-fastify.register(configRoutes);
-fastify.register(deviceRoutes);
-fastify.register(realtimeRoutes);
-fastify.register(controlRoutes);
-fastify.register(sessionRoutes);
-fastify.register(routeRoutes);
-fastify.register(telemetryRoutes);
-fastify.register(debugRoutes);
-fastify.register(userRoutes);
-fastify.register(cameraRoutes);
+    // Register routes
+    fastify.register(healthRoutes);
+    fastify.register(authRoutes);
+    fastify.register(configRoutes);
+    fastify.register(deviceRoutes);
+    fastify.register(realtimeRoutes);
+    fastify.register(controlRoutes);
+    fastify.register(sessionRoutes);
+    fastify.register(routeRoutes);
+    fastify.register(telemetryRoutes);
+    fastify.register(debugRoutes);
+    fastify.register(userRoutes);
+    fastify.register(cameraRoutes);
 
 const start = async () => {
     try {

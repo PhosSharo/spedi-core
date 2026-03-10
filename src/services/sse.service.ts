@@ -37,8 +37,12 @@ class SseService {
      * Keeps the connection open and handles formatting messages as SSE.
      */
     addClient(id: string, reply: FastifyReply) {
+        // Preserve any existing headers (like CORS injected by Fastify plugins)
+        const existingHeaders = reply.getHeaders ? reply.getHeaders() : {};
+
         // Set standard SSE headers
         reply.raw.writeHead(200, {
+            ...existingHeaders,
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive'

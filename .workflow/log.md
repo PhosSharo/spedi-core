@@ -1,4 +1,4 @@
-﻿# log.md — Build Log
+# log.md — Build Log
 
 ---
 
@@ -281,3 +281,18 @@
 > Implemented `resolveApiUrl()` in `lib/api.ts` to dynamically replace `127.0.0.1` with `window.location.hostname`.
 > Fixes "Silent SSE Drop" where mobile phones or remote laptops testing the dashboard would try to connect to their own loopback instead of the host server.
 > Restored visibility of System Activity logs and stable Route command execution for all network clients.
+
+52 | REFACTOR | Shared SSE Context & Authentication Alignment
+> Created `sse-context.tsx` with `SseProvider` to unify 4 duplicate connections into 1.
+> Aligned SSE lifecycle with authentication: connection only fires *after* token is verified.
+> Rewrote `SystemActivity`, `TelemetryPanel`, `SessionIndicator`, and `CameraSnapshot` as pure subscribers via `useSseEvent`.
+
+53 | FIX     | Control Pipeline Optimization & De-noising
+> Removed per-frame logging from `deviceService.publishJoystick()` to prevent syslog buffer flooding.
+> Optimized `SseService` with a 30s keep-alive heartbeat for connection stability.
+> Verified hot-path joystick latency remains sub-1ms.
+
+54 | FEAT    | Backend Test Infrastructure (Vitest)
+> Established backend testing framework using Vitest.
+> Created `vitest.config.ts` and 3 dedicated test suites (34 tests total).
+> Coverage: SSE broadcast pipeline, control hot path (performance benchmarks), and session lifecycle (mutex & grace periods).

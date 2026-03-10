@@ -1,4 +1,4 @@
-﻿# learn.md â€” Agent Session Log
+# learn.md â€” Agent Session Log
 > Mistakes, incompatibilities, and corrected assumptions. Read before acting.
 
 ---
@@ -224,3 +224,44 @@ Forcing `Content-Type: application/json` on a fetch request with a `null` or `un
 ### ✅ Fix / Workaround
 Updated `apiFetch` to only attach the `Content-Type` header if an actual `string` body is provided in the options.
 
+---
+
+## SSE Token Race Condition — 2026-03-11
+
+### ❌ What Failed
+`EventSource` connections in dashboard components were established but never received data, despite valid tokens in the browser.
+
+### 🔍 Why It Failed
+Components were mounting and initializing `new EventSource()` in `useEffect` hooks *before* the `DashboardLayout` had finished restoring the user's JWT from `getCurrentUser()`. The token was `null` at the moment of connection, causing the backend to (correctly) return 401, which `EventSource` doesn't expose clearly.
+
+### ✅ Fix / Workaround
+Implemented a `SseProvider` context in `sse-context.tsx`. This provider is mounted *inside* the auth-verified block of `DashboardLayout`. This guarantees that the SSE connection is only attempted once the token is stable and available.
+
+---
+
+## Redundant SSE / WebSocket Connections — 2026-03-11
+
+### ❌ What Failed
+Opening the dashboard triggered 4+ separate TCP connections to `/events` (System Activity, Telemetry, Session Indicator, Camera).
+
+### 🔍 Why It Failed
+Every component managed its own lifecycle and `EventSource` instance. This wasted server resources and multiplied the "initial state burst" overhead by 4x for every page load.
+
+### ✅ Fix / Workaround
+Unified all SSE consumers into the `SseProvider`. Components now use a simple `useSseEvent(type, callback)` hook to subscribe to the single, shared data stream.
+
+---
+
+## Hot-Path Logging Hygiene — 2026-03-11
+
+### ❌ What Failed
+The System Activity panel was flooded with joystick coordinates, making it impossible to see real system events.
+
+### 🔍 Why It Failed
+`publishJoystick()` called `logService.info()` on every frame (~5-10 times per second). This not only created visual noise but also pushed the 200-slot circular log buffer past its limit every few seconds, deleting older, more critical logs before they could be read.
+
+### ✅ Fix / Workaround
+Strictly removed all logging from performance-critical "hot paths" (Joystick, Route execution). These paths now use in-memory shadow updates only. Higher-level events (Auth, Session start, Route dispatch) remain logged. 
+
+### ⚠️ Watch Out
+Always benchmark the impact of "convenience logging" on high-frequency loops. If it executes more than once per user action, it probably shouldn't be in the persistent syslog.

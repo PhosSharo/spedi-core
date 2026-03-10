@@ -21,6 +21,7 @@
         "dist",
         "app",
         "lib",
-        "components"
+        "components",
+        "src/tests"
     ]
 }

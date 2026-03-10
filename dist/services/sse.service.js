@@ -4,13 +4,37 @@ exports.sseService = void 0;
 class SseService {
     // Map of active SSE connections, keyed by a unique connection ID
     clients = new Map();
+    heartbeatInterval = null;
+    HEARTBEAT_MS = 30_000;
+    constructor() {
+        this.startHeartbeat();
+    }
+    /**
+     * Sends SSE comment lines to all clients every 30s.
+     * Prevents Railway/Vercel proxies and browsers from timing out idle connections.
+     */
+    startHeartbeat() {
+        this.heartbeatInterval = setInterval(() => {
+            for (const [id, reply] of this.clients.entries()) {
+                try {
+                    reply.raw.write(':\n\n');
+                }
+                catch {
+                    this.clients.delete(id);
+                }
+            }
+        }, this.HEARTBEAT_MS);
+    }
     /**
      * Registers a new SSE client connection.
      * Keeps the connection open and handles formatting messages as SSE.
      */
     addClient(id, reply) {
+        // Preserve any existing headers (like CORS injected by Fastify plugins)
+        const existingHeaders = reply.getHeaders ? reply.getHeaders() : {};
         // Set standard SSE headers
         reply.raw.writeHead(200, {
+            ...existingHeaders,
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive'
@@ -72,6 +96,10 @@ class SseService {
      * Closes all active SSE connections (useful for graceful shutdown)
      */
     closeAll() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+        }
         for (const [id, reply] of this.clients.entries()) {
             reply.raw.end();
             this.clients.delete(id);

@@ -131,8 +131,8 @@ export default async function deviceRoutes(fastify: FastifyInstance) {
                 type: 'object',
                 required: ['name', 'mqtt_client_id'],
                 properties: {
-                    name: { type: 'string' },
-                    mqtt_client_id: { type: 'string' },
+                    name: { type: 'string', example: 'test-boat-01' },
+                    mqtt_client_id: { type: 'string', example: 'test-client-01' },
                 },
             },
             response: {

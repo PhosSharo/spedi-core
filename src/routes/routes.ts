@@ -94,8 +94,8 @@ const routeRoutes: FastifyPluginAsync = async (fastify) => {
                 type: 'object',
                 required: ['device_id', 'name', 'waypoints'],
                 properties: {
-                    device_id: { type: 'string' },
-                    name: { type: 'string', minLength: 1 },
+                    device_id: { type: 'string', example: '00000000-0000-0000-0000-000000000000' },
+                    name: { type: 'string', minLength: 1, example: 'Bangkok River Patrol' },
                     waypoints: {
                         type: 'array',
                         minItems: 2,
@@ -103,10 +103,15 @@ const routeRoutes: FastifyPluginAsync = async (fastify) => {
                             type: 'object',
                             required: ['lat', 'lng'],
                             properties: {
-                                lat: { type: 'number' },
-                                lng: { type: 'number' },
+                                lat: { type: 'number', example: 13.7563 },
+                                lng: { type: 'number', example: 100.5018 },
                             },
                         },
+                        example: [
+                            { lat: 13.7563, lng: 100.5018 },
+                            { lat: 13.7570, lng: 100.5025 },
+                            { lat: 13.7580, lng: 100.5030 },
+                        ],
                     },
                 },
             },

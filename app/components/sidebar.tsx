@@ -6,7 +6,6 @@ import {
     RiDashboardLine,
     RiRouteLine,
     RiSettings4Line,
-    RiTerminalBoxLine,
     RiBookmarkLine,
     RiLogoutBoxRLine,
     RiRobot2Line,
@@ -25,7 +24,6 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
     const navItems = [
         { name: 'DASHBOARD', href: '/', icon: RiDashboardLine },
         { name: 'DEVICES', href: '/devices', icon: RiServerLine },
-        { name: 'TESTING', href: '/testing', icon: RiTerminalBoxLine },
         { name: 'CONFIG', href: '/config', icon: RiSettings4Line, superuser: true },
         { name: 'DOCS', href: '/docs', icon: RiBookmarkLine },
     ];

@@ -194,3 +194,9 @@
 > Moved historical telemetry chart and query interface from `/telemetry` into the main `/` dashboard below the live stream.
 > Extracted device provisioning and list logic from the `/testing` payload into a new dedicated `/devices` route.
 > Re-verified frontend compilation with `npm run build` after removing the isolated `/telemetry` route.
+
+37 | REFACTOR | Docs & Testing Redesign
+> Deleted the `/testing` page (JoystickSimulator, PathSimulator). Removed `TESTING` from sidebar nav.
+> Rewrote `/docs` as a two-tab layout: Guides (IoT/Arduino + Mobile/Flutter conceptual docs) and API Reference (Scalar with auto-injected JWT, forced dark mode).
+> Added OpenAPI `example` values to `auth.ts`, `devices.ts`, `session.ts`, `routes.ts` so Scalar pre-populates realistic payloads.
+> Verified clean build: `npm run build` — 0 errors, route table confirms `/docs` present and `/testing` absent.

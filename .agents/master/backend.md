@@ -1,6 +1,6 @@
 ﻿# SPEDI Backend Design Document
 
-**Stack:** Node.js 20 + Fastify Â· Mosquitto on Railway Â· Supabase PostgreSQL + Auth Â· Next.js dashboard on Vercel  
+**Stack:** Node.js 20 + Fastify â€” Mosquitto on Railway â€” Supabase PostgreSQL + Auth â€” Next.js dashboard on Vercel  
 **Status:** Pre-build. Authoritative reference.
 
 ---
@@ -8,6 +8,8 @@
 ## Domain Summary
 
 Backend mediates between three clients â€” Flutter controller app, Next.js admin dashboard, physical boat â€” using the Device Shadow pattern. Server holds `desired` state (what the boat should do), device reports `reported` state (what it is doing). Server is the sole MQTT publisher to command topics. App never touches MQTT directly.
+
+All API interaction is documented and interactively testable via the dashboard's `/docs` portal, which parses the Fastify OpenAPI spec and auto-injects Supabase session tokens for seamless "Try It" debugging.
 
 Two interaction modes: **manual** (joystick stream over WebSocket) and **auto** (route dispatched once over REST). Hot path for joystick must never touch the database or await anything.
 

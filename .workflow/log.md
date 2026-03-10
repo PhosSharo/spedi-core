@@ -1,4 +1,4 @@
-﻿# log.md â€” Build Log
+﻿# log.md — Build Log
 
 ---
 
@@ -189,3 +189,8 @@
 > Abstracted top-level page structures into a global `DashboardLayout` client wrapper.
 > Standardized all dashboard routes (Home, Telemetry, Testing, Config, Docs) within the new layout context.
 > Verified Next.js build and routing.
+
+36 | REFACTOR | Merged Telemetry into Dashboard & Created Devices Page
+> Moved historical telemetry chart and query interface from `/telemetry` into the main `/` dashboard below the live stream.
+> Extracted device provisioning and list logic from the `/testing` payload into a new dedicated `/devices` route.
+> Re-verified frontend compilation with `npm run build` after removing the isolated `/telemetry` route.

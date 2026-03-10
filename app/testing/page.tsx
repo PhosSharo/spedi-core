@@ -500,52 +500,6 @@ export default function TestingPage() {
         init();
     }, []);
 
-    const [creatingDevice, setCreatingDevice] = useState(false);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
-
-    const deleteDevice = async (id: string, name: string) => {
-        if (!confirm(`Delete device "${name}"? This cannot be undone.`)) return;
-        setDeletingId(id);
-        try {
-            const res = await apiFetch(`/devices/${id}`, { method: 'DELETE' });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || `HTTP ${res.status}`);
-            }
-            setDevices(prev => prev.filter(d => d.id !== id));
-        } catch (err: any) {
-            console.error('Failed to delete device:', err);
-            alert(`Failed: ${err.message}`);
-        } finally {
-            setDeletingId(null);
-        }
-    };
-
-    const createTestDevice = async () => {
-        setCreatingDevice(true);
-        try {
-            const res = await apiFetch('/devices', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: `test-boat-${String(Date.now()).slice(-4)}`,
-                    mqtt_client_id: `test-client-${String(Date.now()).slice(-4)}`,
-                }),
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || `HTTP ${res.status}`);
-            }
-            const newDevice = await res.json();
-            setDevices(prev => [...prev, newDevice]);
-        } catch (err: any) {
-            console.error('Failed to create test device:', err);
-            alert(`Failed: ${err.message}`);
-        } finally {
-            setCreatingDevice(false);
-        }
-    };
-
     return (
         <div className="p-4 lg:p-6 flex flex-col gap-4 h-full">
             <div className="border-b border-border pb-4 flex items-end justify-between">
@@ -556,54 +510,17 @@ export default function TestingPage() {
             </div>
 
             {devices.length === 0 ? (
-                <div className="rounded-sm border border-border bg-background p-12 text-center">
-                    <div className="bg-foreground text-background p-3 rounded-sm inline-block mb-4 border border-foreground">
+                <div className="rounded-sm border border-border bg-background p-12 text-center flex flex-col items-center justify-center flex-1">
+                    <div className="bg-muted text-muted-foreground p-3 rounded-sm inline-block mb-4 border border-border">
                         <RiGamepadLine size={24} />
                     </div>
-                    <h2 className="text-sm font-bold tracking-widest uppercase font-sans text-foreground mb-2">No devices registered</h2>
-                    <p className="text-[10px] text-muted-foreground mb-6 max-w-md mx-auto uppercase font-sans tracking-widest">
-                        Create a test device to start experimenting. Test devices are safe to remove later.
+                    <h2 className="text-sm font-bold tracking-widest uppercase font-sans text-foreground mb-2">No devices found</h2>
+                    <p className="text-[10px] text-muted-foreground max-w-md mx-auto uppercase font-sans tracking-widest">
+                        To use testing utilities, you must first register or provision a device in the <a href="/devices" className="text-foreground underline">Devices Manager</a>.
                     </p>
-                    <button
-                        onClick={createTestDevice}
-                        disabled={creatingDevice}
-                        className="inline-flex items-center gap-2 bg-foreground hover:bg-muted-foreground disabled:bg-muted disabled:text-muted-foreground text-background font-bold px-4 py-2 rounded-sm transition-colors text-xs uppercase tracking-widest font-sans"
-                    >
-                        {creatingDevice ? <RiLoader4Line className="animate-spin" size={16} /> : <RiGamepadLine size={16} />}
-                        {creatingDevice ? 'Creating...' : 'Create Test Device'}
-                    </button>
                 </div>
             ) : (
                 <div className="flex flex-col gap-4 flex-1">
-                    {/* Device management bar */}
-                    <div className="rounded-sm border border-border bg-background p-3 flex flex-wrap gap-2 items-center">
-                        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mr-4 font-sans">Registered Devices</h3>
-                        {devices.map(d => (
-                            <div key={d.id} className="flex items-center gap-2 bg-muted border border-border rounded-sm px-2 py-1 text-xs">
-                                <span className="text-foreground font-bold">{d.name}</span>
-                                <span className="text-muted-foreground font-mono text-[10px] bg-background px-1 rounded-sm">{d.id.slice(0, 8)}</span>
-                                <button
-                                    onClick={() => deleteDevice(d.id, d.name)}
-                                    disabled={deletingId === d.id}
-                                    className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 ml-1"
-                                    title="Delete device"
-                                >
-                                    {deletingId === d.id ? <RiLoader4Line className="animate-spin" size={12} /> : <RiDeleteBinLine size={12} />}
-                                </button>
-                            </div>
-                        ))}
-                        <div className="ml-auto">
-                            <button
-                                onClick={createTestDevice}
-                                disabled={creatingDevice}
-                                className="inline-flex items-center gap-1.5 bg-foreground hover:bg-muted-foreground disabled:bg-muted disabled:text-muted-foreground text-background text-[10px] font-bold px-2 py-1 rounded-sm transition-colors uppercase tracking-widest font-sans"
-                            >
-                                {creatingDevice ? <RiLoader4Line className="animate-spin" size={12} /> : <RiAddLine size={12} />}
-                                Add Device
-                            </button>
-                        </div>
-                    </div>
-
                     <div className="grid gap-4 lg:grid-cols-2 flex-1">
                         <JoystickSimulator devices={devices} />
                         <PathSimulator devices={devices} />

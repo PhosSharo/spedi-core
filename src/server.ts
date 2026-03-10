@@ -51,6 +51,21 @@ import debugRoutes from './routes/debug';
 import userRoutes from './routes/users';
 import { routeService } from './services/route.service';
 
+// Replace default JSON parser to tolerate empty bodies
+fastify.removeContentTypeParser('application/json');
+fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body: string, done) {
+    try {
+        if (!body || body.trim() === '') {
+            done(null, {});
+            return;
+        }
+        done(null, JSON.parse(body));
+    } catch (err: any) {
+        err.statusCode = 400;
+        done(err, undefined);
+    }
+});
+
 // Register plugins
 fastify.register(authPlugin);
 fastify.register(websocket);

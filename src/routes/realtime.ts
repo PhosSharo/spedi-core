@@ -78,6 +78,11 @@ const realtimeRoutes: FastifyPluginAsync = async (fastify) => {
             request.log.error(err, 'Failed to flush initial state for new SSE client');
         }
 
+        // Wait indefinitely until the client drops connection to prevent Fastify resolving the handler
+        await new Promise((resolve) => {
+            request.raw.on('close', resolve);
+        });
+
         return reply;
     });
 };

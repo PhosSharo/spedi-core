@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { RiRobot2Line, RiSignalTowerLine, RiDashboard3Line, RiLoader4Line, RiLogoutBoxRLine } from "@remixicon/react";
-import { getToken, setToken } from '@/lib/auth-store';
+import { getToken, setToken, logoutDirect } from '@/lib/auth-store';
 
 import { TelemetryPanel } from './components/telemetry-panel';
 import { SessionIndicator } from './components/session-indicator';
@@ -48,18 +48,20 @@ export default function Home() {
   }, [router]);
 
   const handleLogout = async () => {
-    const token = getToken();
     try {
+      const token = getToken();
       if (token) {
-        await fetch('/api/auth/logout', {
+        // Best-effort backend session cleanup
+        fetch('/api/auth/logout', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
-        });
+        }).catch(() => { });
       }
+      await logoutDirect();
     } catch (err) {
       console.error('Logout failed:', err);
-    } finally {
       setToken(null);
+    } finally {
       router.push('/login');
     }
   };

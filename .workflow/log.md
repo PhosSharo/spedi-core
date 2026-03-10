@@ -169,3 +169,10 @@
 > Joystick: open session → WS connect → d-pad/sliders/keyboard → send commands (single or continuous 200ms).
 > Path: create route with JSON waypoints → dispatch → abort → delete draft.
 > Added "Testing" link to `Navbar`.
+
+33 | REFACTOR | Auth architecture rethink — direct Supabase auth
+> Fixed `next.config.mjs` — proxy rewrite now uses `BACKEND_URL` env var (defaults to localhost for dev).
+> Rewrote `lib/auth-store.ts` with `loginDirect()` and `logoutDirect()` using Supabase client directly.
+> Updated `app/login/page.tsx` — login calls Supabase directly, no backend round-trip.
+> Updated logout handlers in all 5 dashboard pages to use `logoutDirect()`.
+> Added `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to `.env`.

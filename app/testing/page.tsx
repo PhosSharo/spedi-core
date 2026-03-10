@@ -7,7 +7,7 @@ import {
     RiPlayLine, RiStopLine, RiWifiLine, RiWifiOffLine,
     RiArrowUpLine, RiArrowDownLine, RiArrowLeftLine, RiArrowRightLine, RiStopCircleLine
 } from "@remixicon/react";
-import { getToken, setToken } from '@/lib/auth-store';
+import { getToken, setToken, logoutDirect } from '@/lib/auth-store';
 import { Navbar } from '../components/navbar';
 
 interface Device { id: string; name: string; }
@@ -539,11 +539,13 @@ export default function TestingPage() {
     }, [router]);
 
     const handleLogout = async () => {
-        const token = getToken();
         try {
-            if (token) await fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+            const token = getToken();
+            if (token) {
+                fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } }).catch(() => { });
+            }
+            await logoutDirect();
         } catch { } finally {
-            setToken(null);
             router.push('/login');
         }
     };

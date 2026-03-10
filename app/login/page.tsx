@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { setToken } from '@/lib/auth-store';
+import { loginDirect } from '@/lib/auth-store';
 import { RiRobot2Line, RiLoader4Line, RiErrorWarningLine } from '@remixicon/react';
 
 export default function LoginPage() {
@@ -17,19 +17,7 @@ export default function LoginPage() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message || 'Login failed');
-            }
-
-            // In-memory token storage constraint
-            setToken(data.session.access_token);
+            await loginDirect(email, password);
             router.push('/');
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred');

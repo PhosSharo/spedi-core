@@ -1,10 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { TelemetryPanel } from './components/telemetry-panel';
 import { SystemActivity } from './components/system-activity';
 import { CameraSnapshot } from './components/camera-snapshot';
+import { LiveMap } from './components/live-map';
+
+type PanelView = 'NAV_VIEW' | 'SYSTEM_ACTIVITY';
 
 export default function Home() {
+  const [activePanel, setActivePanel] = useState<PanelView>('NAV_VIEW');
+
   return (
     <div className="p-4 lg:p-6 flex flex-col gap-4 h-full xl:h-screen overflow-hidden">
       <div className="border-b border-border pb-4 flex items-end justify-between shrink-0">
@@ -27,11 +33,41 @@ export default function Home() {
         {/* Intelligence Grid */}
         <div className="flex flex-col xl:flex-row gap-6 flex-1 xl:min-h-0">
 
-          {/* System Activity Stream */}
-          <div className="flex flex-col gap-2 flex-1 min-h-[400px] xl:min-h-0">
-            <h2 className="text-[10px] font-bold tracking-widest uppercase font-sans text-muted-foreground ml-1">Unified_System_Activity</h2>
-            <div className="flex-1 min-h-0">
-              <SystemActivity />
+          {/* Left Panel: Toggle between NAV_VIEW and SYSTEM_ACTIVITY */}
+          <div className="flex flex-col gap-0 flex-1 min-h-[400px] xl:min-h-0">
+            {/* Panel Toggle Tabs */}
+            <div className="flex items-center gap-0 shrink-0">
+              <button
+                onClick={() => setActivePanel('NAV_VIEW')}
+                className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest font-sans border border-border rounded-tl-sm transition-colors ${
+                  activePanel === 'NAV_VIEW'
+                    ? 'bg-background text-foreground border-b-transparent'
+                    : 'bg-muted/30 text-muted-foreground hover:text-foreground border-b-border'
+                }`}
+              >
+                Nav_View
+              </button>
+              <button
+                onClick={() => setActivePanel('SYSTEM_ACTIVITY')}
+                className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest font-sans border border-border border-l-0 rounded-tr-sm transition-colors ${
+                  activePanel === 'SYSTEM_ACTIVITY'
+                    ? 'bg-background text-foreground border-b-transparent'
+                    : 'bg-muted/30 text-muted-foreground hover:text-foreground border-b-border'
+                }`}
+              >
+                System_Activity
+              </button>
+              {/* Filler border to complete the tab bar */}
+              <div className="flex-1 border-b border-border" />
+            </div>
+
+            {/* Panel Content */}
+            <div className="flex-1 min-h-0 border border-border border-t-0 rounded-b-sm overflow-hidden bg-background">
+              {activePanel === 'NAV_VIEW' ? (
+                <LiveMap />
+              ) : (
+                <SystemActivity />
+              )}
             </div>
           </div>
 

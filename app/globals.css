@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -201,4 +202,67 @@ body {
   100% {
     bottom: -100px;
   }
+}
+
+/* ── MapLibre GL JS — Monochromatic Overrides ──────────────── */
+
+.maplibregl-map {
+  font-family: var(--font-mono), monospace;
+}
+
+.maplibregl-ctrl-group {
+  background: #141414 !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+
+.maplibregl-ctrl-group button {
+  width: 28px !important;
+  height: 28px !important;
+  background-color: #141414 !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+.maplibregl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+
+.maplibregl-ctrl-group button:hover {
+  background-color: #1a1a1a !important;
+}
+
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+
+.maplibregl-ctrl-attrib {
+  background: rgba(13,13,13,0.7) !important;
+  color: #555555 !important;
+  font-size: 9px !important;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: #555555 !important;
+}
+
+.maplibregl-ctrl-scale {
+  background: rgba(13,13,13,0.7) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+  color: #999999 !important;
+  font-size: 10px !important;
+  padding: 0 4px !important;
+  border-radius: 3px !important;
+}
+
+.maplibregl-popup-content {
+  background: #222222 !important;
+  color: #f0f0f0 !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
 }

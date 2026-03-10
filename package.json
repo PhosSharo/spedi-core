@@ -28,6 +28,7 @@
     "fastify": "^5.8.2",
     "fastify-plugin": "^5.1.0",
     "jsonwebtoken": "^9.0.3",
+    "maplibre-gl": "^5.19.0",
     "mqtt": "^5.15.0",
     "next": "16.1.6",
     "radix-ui": "^1.4.3",

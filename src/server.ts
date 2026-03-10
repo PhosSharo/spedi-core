@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
+import cors from '@fastify/cors';
 import healthRoutes from './routes/health';
 import authRoutes from './routes/auth';
 import configRoutes from './routes/config';
@@ -11,6 +12,15 @@ import { createClient } from '@supabase/supabase-js';
 
 const fastify = Fastify({
     logger: true
+});
+
+// CORS — allow the Vercel frontend and local dev
+fastify.register(cors, {
+    origin: [
+        'http://localhost:3000',
+        'https://spedi-core.vercel.app',
+    ],
+    credentials: true,
 });
 
 // Configure Supabase Client

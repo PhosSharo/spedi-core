@@ -10,6 +10,7 @@ import {
     RiRefreshLine
 } from "@remixicon/react";
 import { getToken } from '@/lib/auth-store';
+import { getApiUrl } from '@/lib/api';
 
 interface TelemetryData {
     mode: string | null;
@@ -41,8 +42,7 @@ export function TelemetryPanel() {
 
         setConnectionState('connecting');
 
-        // We use the query param approach since EventSource doesn't support Authorization headers
-        const sse = new EventSource(`/api/events?token=${token}`);
+        const sse = new EventSource(`${getApiUrl()}/events?token=${token}`);
         eventSourceRef.current = sse;
 
         sse.onopen = () => {
@@ -115,7 +115,7 @@ export function TelemetryPanel() {
             <div className="flex items-center justify-between border-b border-zinc-800 p-4 px-6 bg-zinc-900/80">
                 <div className="flex items-center gap-3">
                     <div className={`h-2.5 w-2.5 rounded-full ${deviceStatus === 'online' ? 'bg-emerald-500 animate-pulse' :
-                            deviceStatus === 'offline' ? 'bg-red-500' : 'bg-zinc-600'
+                        deviceStatus === 'offline' ? 'bg-red-500' : 'bg-zinc-600'
                         }`} />
                     <h3 className="text-sm font-semibold text-zinc-200">Live Telemetry</h3>
                 </div>

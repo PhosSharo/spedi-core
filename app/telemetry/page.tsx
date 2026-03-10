@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { RiLoader4Line, RiSearchLine, RiArrowRightLine, RiArrowLeftLine } from "@remixicon/react";
-import { getToken, setToken, logoutDirect } from '@/lib/auth-store';
+import { getToken, setToken, logoutDirect, getCurrentUser } from '@/lib/auth-store';
+import { apiFetch } from '@/lib/api';
 import { Navbar } from '../components/navbar';
 
 interface TelemetryRecord {
@@ -45,50 +46,41 @@ function TelemetryChart({ records }: { records: TelemetryRecord[] }) {
         const W = rect.width;
         const H = rect.height;
 
-        // Clear
         ctx.clearRect(0, 0, W, H);
 
-        // Sort records ascending by time for chart
         const sorted = [...records].sort((a, b) =>
             new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
         );
 
-        // Extract series
         const lats = sorted.map(r => r.raw.lat ?? null);
         const lngs = sorted.map(r => r.raw.lng ?? null);
         const obsL = sorted.map(r => r.raw.obstacle_left ?? null);
         const obsR = sorted.map(r => r.raw.obstacle_right ?? null);
 
-        // Margins
         const mTop = 20, mRight = 60, mBottom = 40, mLeft = 60;
         const plotW = W - mLeft - mRight;
         const plotH = H - mTop - mBottom;
 
-        // Time axis
         const times = sorted.map(r => new Date(r.recorded_at).getTime());
         const tMin = Math.min(...times);
         const tMax = Math.max(...times);
         const tRange = tMax - tMin || 1;
         const xOf = (t: number) => mLeft + ((t - tMin) / tRange) * plotW;
 
-        // Y axis helpers
         const validNums = (arr: (number | null)[]) => arr.filter(v => v !== null) as number[];
 
-        // GPS axis (left)
         const gpsVals = [...validNums(lats), ...validNums(lngs)];
         const gpsMin = gpsVals.length ? Math.min(...gpsVals) : 0;
         const gpsMax = gpsVals.length ? Math.max(...gpsVals) : 1;
         const gpsRange = gpsMax - gpsMin || 1;
         const gpsY = (v: number) => mTop + plotH - ((v - gpsMin) / gpsRange) * plotH;
 
-        // Obstacle axis (right)
         const obsVals = [...validNums(obsL), ...validNums(obsR)];
         const obsMin = obsVals.length ? Math.min(...obsVals) : 0;
         const obsMax = obsVals.length ? Math.max(...obsVals) : 100;
         const obsRange = obsMax - obsMin || 1;
         const obsY = (v: number) => mTop + plotH - ((v - obsMin) / obsRange) * plotH;
 
-        // Draw grid
         ctx.strokeStyle = '#27272a';
         ctx.lineWidth = 0.5;
         for (let i = 0; i <= 4; i++) {
@@ -99,7 +91,6 @@ function TelemetryChart({ records }: { records: TelemetryRecord[] }) {
             ctx.stroke();
         }
 
-        // Draw line helper
         const drawLine = (
             data: (number | null)[],
             color: string,
@@ -119,13 +110,11 @@ function TelemetryChart({ records }: { records: TelemetryRecord[] }) {
             ctx.stroke();
         };
 
-        // Draw series
-        drawLine(lats, '#6366f1', gpsY);       // Indigo — lat
-        drawLine(lngs, '#8b5cf6', gpsY);       // Violet — lng
-        drawLine(obsL, '#f59e0b', obsY);        // Amber — obstacle left
-        drawLine(obsR, '#ef4444', obsY);        // Red — obstacle right
+        drawLine(lats, '#6366f1', gpsY);
+        drawLine(lngs, '#8b5cf6', gpsY);
+        drawLine(obsL, '#f59e0b', obsY);
+        drawLine(obsR, '#ef4444', obsY);
 
-        // Axes labels
         ctx.fillStyle = '#71717a';
         ctx.font = '10px monospace';
         ctx.textAlign = 'right';
@@ -142,7 +131,6 @@ function TelemetryChart({ records }: { records: TelemetryRecord[] }) {
             ctx.fillText(val.toFixed(0), W - mRight + 6, y + 3);
         }
 
-        // Time axis labels
         ctx.textAlign = 'center';
         const tickCount = Math.min(6, sorted.length);
         for (let i = 0; i < tickCount; i++) {
@@ -152,7 +140,6 @@ function TelemetryChart({ records }: { records: TelemetryRecord[] }) {
             ctx.fillText(label, x, H - mBottom + 16);
         }
 
-        // Legend
         const legend = [
             { label: 'Lat', color: '#6366f1' },
             { label: 'Lng', color: '#8b5cf6' },
@@ -212,17 +199,12 @@ export default function TelemetryPage() {
             if (!token) { router.push('/login'); return; }
 
             try {
-                const res = await fetch('/api/auth/me', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!res.ok) throw new Error('Invalid token');
-                const data = await res.json();
-                setUser(data);
+                const userData = await getCurrentUser();
+                if (!userData) throw new Error('Not authenticated');
+                setUser(userData);
 
                 // Fetch devices
-                const devRes = await fetch('/api/devices', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const devRes = await apiFetch('/devices');
                 if (devRes.ok) {
                     const devData = await devRes.json();
                     setDevices(devData);
@@ -248,13 +230,6 @@ export default function TelemetryPage() {
 
     const handleLogout = async () => {
         try {
-            const token = getToken();
-            if (token) {
-                fetch('/api/auth/logout', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }).catch(() => { });
-            }
             await logoutDirect();
         } catch (err) {
             console.error('Logout failed:', err);
@@ -278,9 +253,7 @@ export default function TelemetryPage() {
             if (to) params.set('to', new Date(to).toISOString());
             if (cursor) params.set('cursor', cursor);
 
-            const res = await fetch(`/api/telemetry?${params}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await apiFetch(`/telemetry?${params}`);
 
             if (!res.ok) throw new Error('Failed to fetch telemetry');
 

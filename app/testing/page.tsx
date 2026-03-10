@@ -7,7 +7,8 @@ import {
     RiPlayLine, RiStopLine, RiWifiLine, RiWifiOffLine,
     RiArrowUpLine, RiArrowDownLine, RiArrowLeftLine, RiArrowRightLine, RiStopCircleLine
 } from "@remixicon/react";
-import { getToken, setToken, logoutDirect } from '@/lib/auth-store';
+import { getToken, setToken, logoutDirect, getCurrentUser } from '@/lib/auth-store';
+import { apiFetch, getWsUrl } from '@/lib/api';
 import { Navbar } from '../components/navbar';
 
 interface Device { id: string; name: string; }
@@ -28,16 +29,12 @@ function JoystickSimulator({ devices }: { devices: Device[] }) {
     };
 
     const openSession = async () => {
-        const token = getToken();
-        if (!token || !deviceId) return;
+        if (!deviceId) return;
 
         try {
-            const res = await fetch('/api/session', {
+            const res = await apiFetch('/session', {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ device_id: deviceId }),
             });
 
@@ -63,8 +60,8 @@ function JoystickSimulator({ devices }: { devices: Device[] }) {
         const token = getToken();
         if (!token) return;
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/api/control?token=${token}`;
+        const wsBaseUrl = getWsUrl();
+        const wsUrl = `${wsBaseUrl}/control?token=${token}`;
 
         addLog(`🔌 Connecting WS to ${wsUrl.split('?')[0]}...`);
 
@@ -124,14 +121,8 @@ function JoystickSimulator({ devices }: { devices: Device[] }) {
             wsRef.current = null;
         }
 
-        const token = getToken();
-        if (!token) return;
-
         try {
-            await fetch('/api/session', {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
+            await apiFetch('/session', { method: 'DELETE' });
             addLog('🛑 Session closed');
         } catch (err: any) {
             addLog(`❌ Close failed: ${err.message}`);
@@ -303,19 +294,11 @@ function PathSimulator({ devices }: { devices: Device[] }) {
     };
 
     const apiCall = async (method: string, path: string, body?: any) => {
-        const token = getToken();
-        if (!token) throw new Error('Not authenticated');
-
-        const opts: RequestInit = {
+        const res = await apiFetch(path, {
             method,
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-        };
-        if (body) opts.body = JSON.stringify(body);
-
-        const res = await fetch(`/api${path}`, opts);
+            headers: { 'Content-Type': 'application/json' },
+            ...(body ? { body: JSON.stringify(body) } : {}),
+        });
         const data = await res.json();
 
         if (!res.ok) {
@@ -517,15 +500,11 @@ export default function TestingPage() {
             if (!token) { router.push('/login'); return; }
 
             try {
-                const res = await fetch('/api/auth/me', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!res.ok) throw new Error('Invalid token');
-                setUser(await res.json());
+                const userData = await getCurrentUser();
+                if (!userData) throw new Error('Not authenticated');
+                setUser(userData);
 
-                const devRes = await fetch('/api/devices', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const devRes = await apiFetch('/devices');
                 if (devRes.ok) setDevices(await devRes.json());
             } catch (err) {
                 console.error('Auth failed:', err);
@@ -540,10 +519,6 @@ export default function TestingPage() {
 
     const handleLogout = async () => {
         try {
-            const token = getToken();
-            if (token) {
-                fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } }).catch(() => { });
-            }
             await logoutDirect();
         } catch { } finally {
             router.push('/login');

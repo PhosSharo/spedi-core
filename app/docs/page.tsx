@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiReferenceReact } from '@scalar/api-reference-react';
-import { getToken, setToken, logoutDirect } from '@/lib/auth-store';
+import { getToken, setToken, logoutDirect, getCurrentUser } from '@/lib/auth-store';
+import { getApiUrl } from '@/lib/api';
 import { RiLoader4Line } from "@remixicon/react";
 import { Navbar } from '../components/navbar';
 
@@ -24,18 +25,9 @@ export default function DocsPage() {
             }
 
             try {
-                const res = await fetch('/api/auth/me', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!res.ok) {
-                    throw new Error('Invalid token');
-                }
-
-                const data = await res.json();
-                setUser(data);
+                const userData = await getCurrentUser();
+                if (!userData) throw new Error('Not authenticated');
+                setUser(userData);
             } catch (err) {
                 console.error('Auth verification failed:', err);
                 setToken(null);
@@ -50,13 +42,6 @@ export default function DocsPage() {
 
     const handleLogout = async () => {
         try {
-            const token = getToken();
-            if (token) {
-                fetch('/api/auth/logout', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }).catch(() => { });
-            }
             await logoutDirect();
         } catch (err) {
             console.error('Logout failed:', err);
@@ -76,46 +61,32 @@ export default function DocsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0d0d0d] text-zinc-50 selection:bg-indigo-500/30 flex flex-col">
+        <div className="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-indigo-500/30">
             <Navbar user={user} onLogout={handleLogout} />
 
-            <main className="flex-1 overflow-hidden">
-                <ApiReferenceReact
-                    configuration={{
-                        url: '/api/openapi.json',
-                        theme: 'none', // We'll let the dark mode prevail or customize via CSS
-                        darkMode: true,
-                        hideDownloadButton: true,
-                    }}
-                />
-            </main>
+            <main className="container mx-auto max-w-7xl px-6 py-10">
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold tracking-tight text-zinc-100">API Documentation</h1>
+                    <p className="text-zinc-400 mt-1">Interactive reference generated from the OpenAPI spec.</p>
+                </div>
 
-            <style jsx global>{`
-        /* Scalar Customizations to match SPEDI aesthetic */
-        .scalar-app {
-          --scalar-font-header: inherit;
-          --scalar-font: inherit;
-          --scalar-color-1: #ffffff;
-          --scalar-color-2: #a1a1aa;
-          --scalar-color-3: #71717a;
-          --scalar-color-accent: #6366f1;
-          --scalar-background-1: #0d0d0d;
-          --scalar-background-2: #18181b;
-          --scalar-background-3: #27272a;
-          --scalar-background-accent: rgba(99, 102, 241, 0.1);
-          --scalar-border-color: #27272a;
-          --scalar-radius: 0.75rem;
-          --scalar-radius-lg: 1rem;
-          --scalar-shadow-1: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-          height: calc(100vh - 65px) !important;
-        }
-        
-        /* Hide default Scalar sidebar search if redundant or weirdly styled */
-        .scalar-sidebar-search {
-          border-radius: 0.5rem !important;
-          background: #18181b !important;
-        }
-      `}</style>
+                <div className="rounded-2xl border border-zinc-800 overflow-hidden bg-zinc-900/50">
+                    <ApiReferenceReact
+                        configuration={{
+                            url: `${getApiUrl()}/openapi.json`,
+                            theme: 'kepler',
+                            layout: 'classic',
+                            hideModels: false,
+                            hideDownloadButton: false,
+                            darkMode: true,
+                            searchHotKey: 'k',
+                            authentication: {
+                                preferredSecurityScheme: 'BearerAuth',
+                            },
+                        }}
+                    />
+                </div>
+            </main>
         </div>
     );
 }

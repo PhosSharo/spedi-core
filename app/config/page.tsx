@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { RiRobot2Line, RiSettings4Line, RiLoader4Line, RiLogoutBoxRLine, RiSave3Line, RiCloseLine, RiEdit2Line } from "@remixicon/react";
-import { getToken, setToken, logoutDirect } from '@/lib/auth-store';
+import { getToken, setToken, logoutDirect, getCurrentUser } from '@/lib/auth-store';
+import { apiFetch } from '@/lib/api';
 
 interface ConfigRow {
     id: number;
@@ -34,12 +35,8 @@ export default function ConfigManager() {
 
             try {
                 // 1. Verify Auth and Superuser status
-                const resAuth = await fetch('/api/auth/me', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (!resAuth.ok) throw new Error('Invalid token');
-                const userData = await resAuth.json();
+                const userData = await getCurrentUser();
+                if (!userData) throw new Error('Invalid token');
 
                 if (!userData.is_superuser) {
                     router.push('/');
@@ -49,9 +46,7 @@ export default function ConfigManager() {
                 setUser(userData);
 
                 // 2. Fetch Config Data
-                const resConfig = await fetch('/api/config', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const resConfig = await apiFetch('/config');
 
                 if (!resConfig.ok) {
                     throw new Error('Failed to fetch config');
@@ -73,13 +68,6 @@ export default function ConfigManager() {
 
     const handleLogout = async () => {
         try {
-            const token = getToken();
-            if (token) {
-                fetch('/api/auth/logout', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }).catch(() => { });
-            }
             await logoutDirect();
         } catch (err) {
             console.error('Logout failed:', err);
@@ -105,13 +93,9 @@ export default function ConfigManager() {
         setSaving(true);
         setError(null);
         try {
-            const token = getToken();
-            const res = await fetch('/api/config', {
+            const res = await apiFetch('/config', {
                 method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ updates: [{ key, value: editValue }] })
             });
 

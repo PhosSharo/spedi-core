@@ -34,10 +34,22 @@ export async function loginDirect(email: string, password: string) {
 
 /**
  * Logout — clears local Supabase session and wipes in-memory token.
- * Caller should also call DELETE /api/session or POST /api/auth/logout
- * separately to clean up any active control session on the backend.
  */
 export async function logoutDirect() {
     await supabase.auth.signOut();
     memoryToken = null;
+}
+
+/**
+ * Get current user info directly from Supabase — replaces GET /auth/me.
+ * Returns null if not authenticated.
+ */
+export async function getCurrentUser() {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) return null;
+    return {
+        id: user.id,
+        email: user.email!,
+        is_superuser: user.app_metadata?.is_superuser === true,
+    };
 }

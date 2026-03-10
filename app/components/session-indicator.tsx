@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { RiUser3Line, RiTimeLine, RiRadioButtonLine } from "@remixicon/react";
 import { getToken } from '@/lib/auth-store';
+import { apiFetch, getApiUrl } from '@/lib/api';
 
 interface ActiveSession {
     sessionId: string;
@@ -16,13 +17,8 @@ export function SessionIndicator() {
     const eventSourceRef = useRef<EventSource | null>(null);
 
     const fetchSession = async () => {
-        const token = getToken();
-        if (!token) return;
-
         try {
-            const res = await fetch('/api/session', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await apiFetch('/session');
             if (res.ok) {
                 const data = await res.json();
                 setSession(data);
@@ -40,7 +36,7 @@ export function SessionIndicator() {
         const token = getToken();
         if (!token) return;
 
-        const sse = new EventSource(`/api/events?token=${token}`);
+        const sse = new EventSource(`${getApiUrl()}/events?token=${token}`);
         eventSourceRef.current = sse;
 
         sse.addEventListener('session_change', (e) => {

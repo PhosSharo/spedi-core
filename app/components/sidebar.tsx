@@ -9,7 +9,8 @@ import {
     RiBookmarkLine,
     RiLogoutBoxRLine,
     RiRobot2Line,
-    RiServerLine
+    RiServerLine,
+    RiUserLine
 } from '@remixicon/react';
 import { SessionIndicator } from './session-indicator';
 
@@ -22,8 +23,9 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
     const pathname = usePathname();
 
     const navItems = [
-        { name: 'DASHBOARD', href: '/', icon: RiDashboardLine },
-        { name: 'DEVICES', href: '/devices', icon: RiServerLine },
+        { name: 'DASHBOARD', href: '/', icon: RiDashboardLine, superuser: true },
+        { name: 'DEVICES', href: '/devices', icon: RiServerLine, superuser: true },
+        { name: 'USERS', href: '/users', icon: RiUserLine, superuser: true },
         { name: 'CONFIG', href: '/config', icon: RiSettings4Line, superuser: true },
         { name: 'DOCS', href: '/docs', icon: RiBookmarkLine },
     ];

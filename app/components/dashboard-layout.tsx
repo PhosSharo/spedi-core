@@ -25,6 +25,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 const userData = await getCurrentUser();
                 if (!userData) throw new Error('Not authenticated');
                 setUser(userData);
+
+                // RBAC: If not superuser, only allow /docs
+                const restrictedPaths = ['/', '/devices', '/config', '/users'];
+                if (!userData.is_superuser && restrictedPaths.includes(pathname)) {
+                    console.log('RBAC: Non-superuser redirected to /docs');
+                    router.push('/docs');
+                }
             } catch (err) {
                 console.error('Auth verification failed:', err);
                 setToken(null);

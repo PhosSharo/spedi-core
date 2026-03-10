@@ -51,6 +51,7 @@ import sessionRoutes from './routes/session';
 import routeRoutes from './routes/routes';
 import telemetryRoutes from './routes/telemetry';
 import debugRoutes from './routes/debug';
+import userRoutes from './routes/users';
 import { routeService } from './services/route.service';
 
 // Register plugins
@@ -104,6 +105,7 @@ fastify.register(sessionRoutes);
 fastify.register(routeRoutes);
 fastify.register(telemetryRoutes);
 fastify.register(debugRoutes);
+fastify.register(userRoutes);
 
 const start = async () => {
     try {

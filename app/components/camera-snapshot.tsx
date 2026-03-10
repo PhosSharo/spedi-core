@@ -1,48 +1,19 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { getToken } from '@/lib/auth-store';
-import { getApiUrl } from '@/lib/api';
+import { useState, useCallback } from 'react';
 import { RiCamera3Line, RiImageAddLine } from '@remixicon/react';
+import { useSseEvent } from './sse-context';
 
 export function CameraSnapshot() {
     const [snapshotUri, setSnapshotUri] = useState<string | null>(null);
     const [timestamp, setTimestamp] = useState<string | null>(null);
-    const eventSourceRef = useRef<EventSource | null>(null);
 
-    useEffect(() => {
-        const connectSSE = () => {
-            const token = getToken();
-            if (!token) return;
-
-            const sse = new EventSource(`${getApiUrl()}/events?token=${token}`);
-            eventSourceRef.current = sse;
-
-            sse.addEventListener('camera_snapshot', (e) => {
-                try {
-                    const data = JSON.parse(e.data);
-                    const { dataUri, timestamp: ts } = data.payload;
-                    setSnapshotUri(dataUri);
-                    setTimestamp(ts);
-                } catch (err) {
-                    console.error('Failed to parse camera snapshot event', err);
-                }
-            });
-
-            sse.onerror = () => {
-                sse.close();
-                setTimeout(connectSSE, 5000);
-            };
-        };
-
-        connectSSE();
-
-        return () => {
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close();
-            }
-        };
-    }, []);
+    // Subscribe to camera snapshot events via shared SSE context
+    useSseEvent('camera_snapshot', useCallback((data: any) => {
+        const { dataUri, timestamp: ts } = data.payload;
+        setSnapshotUri(dataUri);
+        setTimestamp(ts);
+    }, []));
 
     return (
         <div className="w-full h-full flex flex-col border border-border bg-background rounded-sm overflow-hidden aspect-video relative">

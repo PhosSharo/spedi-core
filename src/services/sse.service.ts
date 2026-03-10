@@ -9,6 +9,28 @@ export interface SseEvent {
 class SseService {
     // Map of active SSE connections, keyed by a unique connection ID
     private clients: Map<string, FastifyReply> = new Map();
+    private heartbeatInterval: NodeJS.Timeout | null = null;
+    private readonly HEARTBEAT_MS = 30_000;
+
+    constructor() {
+        this.startHeartbeat();
+    }
+
+    /**
+     * Sends SSE comment lines to all clients every 30s.
+     * Prevents Railway/Vercel proxies and browsers from timing out idle connections.
+     */
+    private startHeartbeat(): void {
+        this.heartbeatInterval = setInterval(() => {
+            for (const [id, reply] of this.clients.entries()) {
+                try {
+                    reply.raw.write(':\n\n');
+                } catch {
+                    this.clients.delete(id);
+                }
+            }
+        }, this.HEARTBEAT_MS);
+    }
 
     /**
      * Registers a new SSE client connection.
@@ -85,6 +107,10 @@ class SseService {
      * Closes all active SSE connections (useful for graceful shutdown)
      */
     closeAll() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+        }
         for (const [id, reply] of this.clients.entries()) {
             reply.raw.end();
             this.clients.delete(id);

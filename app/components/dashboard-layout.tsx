@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { RiLoader4Line } from '@remixicon/react';
 import { getCurrentUser, logoutDirect, setToken } from '@/lib/auth-store';
 import { Sidebar } from './sidebar';
+import { SseProvider } from './sse-context';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
@@ -72,7 +73,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div className="flex w-full h-screen bg-background text-foreground font-mono selection:bg-foreground selection:text-background flex-row">
             <Sidebar user={user} onLogout={handleLogout} />
             <main className="flex-1 overflow-y-auto">
-                {children}
+                <SseProvider>
+                    {children}
+                </SseProvider>
             </main>
         </div>
     );

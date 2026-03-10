@@ -159,7 +159,8 @@ export class DeviceService {
         if (this.mqtt) {
             this.mqtt.publishJoystick(payload);
         }
-        logService.info('mobile', 'route', `Joystick command dispatched: THR=${payload.throttle} STR=${payload.steering}`, payload);
+        // No logService call here — this is the hot path.
+        // Logging every frame (5/sec continuous) floods the 200-slot syslog buffer.
     }
 
     /**

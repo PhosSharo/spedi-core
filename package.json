@@ -10,6 +10,8 @@
     "start": "next start",
     "start:backend": "node dist/server.js",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:seed:superuser": "ts-node src/db/seed-superuser.ts"
   },
   "dependencies": {
@@ -46,7 +48,8 @@
     "nodemon": "^3.1.14",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "ignoreScripts": [
     "sharp",

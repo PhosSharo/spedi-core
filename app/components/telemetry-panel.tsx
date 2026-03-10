@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import {
     RiMapPinLine,
     RiRadarLine,
@@ -9,8 +9,7 @@ import {
     RiWifiOffLine,
     RiRefreshLine
 } from "@remixicon/react";
-import { getToken } from '@/lib/auth-store';
-import { getApiUrl } from '@/lib/api';
+import { useSseEvent, useSseConnectionState } from './sse-context';
 
 interface TelemetryData {
     mode: string | null;
@@ -25,79 +24,20 @@ interface TelemetryData {
 export function TelemetryPanel() {
     const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
     const [deviceStatus, setDeviceStatus] = useState<'online' | 'offline' | 'unknown'>('unknown');
-    const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
-    const eventSourceRef = useRef<EventSource | null>(null);
-    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const connectionState = useSseConnectionState();
 
-    const connectSSE = () => {
-        if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-        }
+    // Subscribe to telemetry events via shared SSE context
+    useSseEvent('telemetry', useCallback((data: any) => {
+        setTelemetry(data.payload);
+    }, []));
 
-        const token = getToken();
-        if (!token) {
-            setConnectionState('disconnected');
-            return;
-        }
+    useSseEvent('device_online', useCallback(() => {
+        setDeviceStatus('online');
+    }, []));
 
-        setConnectionState('connecting');
-
-        const sse = new EventSource(`${getApiUrl()}/events?token=${token}`);
-        eventSourceRef.current = sse;
-
-        sse.onopen = () => {
-            setConnectionState('connected');
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-                reconnectTimeoutRef.current = null;
-            }
-        };
-
-        sse.addEventListener('telemetry', (e) => {
-            try {
-                const data = JSON.parse(e.data);
-                // we assume data.payload matches our TelemetryData shape
-                setTelemetry(data.payload);
-            } catch (err) {
-                console.error('Failed to parse telemetry event', err);
-            }
-        });
-
-        sse.addEventListener('device_online', () => {
-            setDeviceStatus('online');
-        });
-
-        sse.addEventListener('device_offline', () => {
-            setDeviceStatus('offline');
-        });
-
-        sse.onerror = (err) => {
-            console.error('SSE connection error:', err);
-            setConnectionState('disconnected');
-            sse.close();
-
-            // Reconnect with backoff
-            if (!reconnectTimeoutRef.current) {
-                reconnectTimeoutRef.current = setTimeout(() => {
-                    reconnectTimeoutRef.current = null;
-                    connectSSE();
-                }, 5000); // 5s backoff
-            }
-        };
-    };
-
-    useEffect(() => {
-        connectSSE();
-
-        return () => {
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close();
-            }
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-            }
-        };
-    }, []);
+    useSseEvent('device_offline', useCallback(() => {
+        setDeviceStatus('offline');
+    }, []));
 
     // Format helpers
     const formatValue = (val: number | string | boolean | null | undefined, suffix = '') => {

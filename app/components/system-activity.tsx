@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { RiTerminalBoxLine, RiFilter3Line } from '@remixicon/react';
-import { getApiUrl } from '@/lib/api';
-import { getToken } from '@/lib/auth-store';
+import { useSseEvent } from './sse-context';
 
 export type LogSource = 'arduino' | 'mobile' | 'system';
 export type LogLevel = 'info' | 'warn' | 'error';
@@ -24,54 +23,18 @@ export function SystemActivity() {
     const [filter, setFilter] = useState<'all' | LogSource>('all');
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-    const eventSourceRef = useRef<EventSource | null>(null);
+    // Subscribe to syslog events via shared SSE context
+    useSseEvent('syslog', useCallback((data: any) => {
+        const newLog = data.payload as LogEntry;
+        if (!newLog.id) {
+            newLog.id = `fallback-id-${Date.now()}-${Math.random()}`;
+        }
 
-    useEffect(() => {
-        const connectSSE = () => {
-            const token = getToken();
-            if (!token) return;
-
-            const sse = new EventSource(`${getApiUrl()}/events?token=${token}`);
-            eventSourceRef.current = sse;
-
-            sse.addEventListener('syslog', (e) => {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('SYSLOG RECEIVED:', data);
-                    const newLog = data.payload as LogEntry;
-                    if (!newLog.id) {
-                        newLog.id = `fallback-id-${Date.now()}-${Math.random()}`; // Prevent destructive duplicate collapse
-                    }
-
-                    setLogs((prev) => {
-                        // Deduplicate in case of reconnects pushing history again
-                        if (prev.some((l) => l.id === newLog.id)) return prev;
-
-                        // We unshift to put newest at the top, or keep an array and sort.
-                        // Since history comes in oldest-first from the server loop:
-                        // for (let i = recentLogs.length - 1; i >= 0; i--) { send(); }
-                        // The frontend will receive oldest first. We should put newest at the top (index 0).
-                        return [newLog, ...prev].slice(0, 500); // cap memory
-                    });
-                } catch (err) {
-                    console.error('Failed to parse syslog event', err);
-                }
-            });
-
-            sse.onerror = () => {
-                sse.close();
-                setTimeout(connectSSE, 5000);
-            };
-        };
-
-        connectSSE();
-
-        return () => {
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close();
-            }
-        };
-    }, []);
+        setLogs((prev) => {
+            if (prev.some((l) => l.id === newLog.id)) return prev;
+            return [newLog, ...prev].slice(0, 500);
+        });
+    }, []));
 
     const toggleExpand = (id: string) => {
         setExpandedIds(prev => {

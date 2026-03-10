@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { RiUser3Line, RiTimeLine, RiRadioButtonLine } from "@remixicon/react";
-import { getToken } from '@/lib/auth-store';
-import { apiFetch, getApiUrl } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
+import { useSseEvent } from './sse-context';
 
 interface ActiveSession {
     sessionId: string;
@@ -14,51 +14,27 @@ interface ActiveSession {
 
 export function SessionIndicator() {
     const [session, setSession] = useState<ActiveSession | null>(null);
-    const eventSourceRef = useRef<EventSource | null>(null);
 
-    const fetchSession = async () => {
-        try {
-            const res = await apiFetch('/session');
-            if (res.ok) {
-                const data = await res.json();
-                setSession(data);
-            }
-        } catch (err) {
-            console.error('Failed to fetch initial session', err);
-        }
-    };
-
-    const connectSSE = () => {
-        if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-        }
-
-        const token = getToken();
-        if (!token) return;
-
-        const sse = new EventSource(`${getApiUrl()}/events?token=${token}`);
-        eventSourceRef.current = sse;
-
-        sse.addEventListener('session_change', (e) => {
-            try {
-                const data = JSON.parse(e.data);
-                setSession(data.payload);
-            } catch (err) {
-                console.error('Failed to parse session_change event', err);
-            }
-        });
-    };
-
+    // Fetch initial session state on mount
     useEffect(() => {
-        fetchSession();
-        connectSSE();
-
-        return () => {
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close();
+        const fetchSession = async () => {
+            try {
+                const res = await apiFetch('/session');
+                if (res.ok) {
+                    const data = await res.json();
+                    setSession(data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch initial session', err);
             }
         };
+        fetchSession();
     }, []);
+
+    // Subscribe to session change events via shared SSE context
+    useSseEvent('session_change', useCallback((data: any) => {
+        setSession(data.payload);
+    }, []));
 
     if (!session) {
         return (

@@ -11,6 +11,8 @@ interface SseContextValue {
     subscribe: (eventType: string, handler: SseEventHandler) => () => void;
     /** Current connection state */
     connectionState: 'connecting' | 'connected' | 'disconnected';
+    /** Manually reconnect the SSE connection */
+    reconnect: () => void;
 }
 
 const SseContext = createContext<SseContextValue | null>(null);
@@ -147,7 +149,7 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
     }, [connectSSE]);
 
     return (
-        <SseContext.Provider value={{ subscribe, connectionState }}>
+        <SseContext.Provider value={{ subscribe, connectionState, reconnect: connectSSE }}>
             {children}
         </SseContext.Provider>
     );
@@ -183,4 +185,13 @@ export function useSseEvent(eventType: string, handler: SseEventHandler) {
 export function useSseConnectionState(): 'connecting' | 'connected' | 'disconnected' {
     const ctx = useContext(SseContext);
     return ctx?.connectionState ?? 'disconnected';
+}
+
+/**
+ * Hook to manually trigger an SSE stream reconnect.
+ * Useful for fetching initial state if it becomes desynced.
+ */
+export function useSseReconnect(): (() => void) | undefined {
+    const ctx = useContext(SseContext);
+    return ctx?.reconnect;
 }

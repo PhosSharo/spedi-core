@@ -9,7 +9,7 @@ import {
     RiWifiOffLine,
     RiRefreshLine
 } from "@remixicon/react";
-import { useSseEvent, useSseConnectionState } from './sse-context';
+import { useSseEvent, useSseConnectionState, useSseReconnect } from './sse-context';
 
 interface TelemetryData {
     mode: string | null;
@@ -25,6 +25,7 @@ export function TelemetryPanel() {
     const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
     const [deviceStatus, setDeviceStatus] = useState<'online' | 'offline' | 'unknown'>('unknown');
     const connectionState = useSseConnectionState();
+    const reconnect = useSseReconnect();
 
     // Subscribe to telemetry events via shared SSE context
     useSseEvent('telemetry', useCallback((data: any) => {
@@ -37,6 +38,7 @@ export function TelemetryPanel() {
 
     useSseEvent('device_offline', useCallback(() => {
         setDeviceStatus('offline');
+        setTelemetry(null); // Clear telemetry visually when device dies
     }, []));
 
     // Format helpers
@@ -78,6 +80,16 @@ export function TelemetryPanel() {
                             SSE_ACTIVE
                         </span>
                     )}
+
+                    <button
+                        onClick={reconnect}
+                        className="flex items-center gap-1.5 px-2 py-1 ml-2 bg-background border border-border text-foreground rounded-sm hover:border-foreground transition-colors disabled:opacity-50"
+                        title="Force Refresh Telemetry"
+                        disabled={connectionState === 'connecting'}
+                    >
+                        <RiRefreshLine size={12} className={connectionState === 'connecting' ? 'animate-spin' : ''} />
+                        REFRESH
+                    </button>
                 </div>
             </div>
 

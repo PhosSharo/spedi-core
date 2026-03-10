@@ -36,15 +36,16 @@ const realtimeRoutes: FastifyPluginAsync = async (fastify) => {
         sseService.addClient(connectionId, reply);
 
         try {
-            const devices = await deviceService.listDevices();
+            // Flush all active shadows (including emulator 'default')
+            const activeDeviceIds = deviceService.getActiveShadowDeviceIds();
 
-            for (const device of devices) {
-                const state = deviceService.getState(device.id);
+            for (const deviceId of activeDeviceIds) {
+                const state = deviceService.getState(deviceId);
 
                 if (Object.keys(state.reported).length > 0) {
                     sseService.sendToClient(connectionId, {
                         type: 'telemetry',
-                        deviceId: device.id,
+                        deviceId: deviceId,
                         payload: state.reported
                     });
                 }

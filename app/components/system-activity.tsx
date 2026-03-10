@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { RiTerminalBoxLine, RiFilter3Line } from '@remixicon/react';
+import { RiTerminalBoxLine, RiFilter3Line, RiDeleteBinLine } from '@remixicon/react';
 import { useSseEvent } from './sse-context';
 
 export type LogSource = 'arduino' | 'mobile' | 'system';
@@ -43,6 +43,11 @@ export function SystemActivity() {
             else next.add(id);
             return next;
         });
+    };
+
+    const clearLogs = () => {
+        setLogs([]);
+        setExpandedIds(new Set());
     };
 
     const filteredLogs = logs.filter(l => filter === 'all' || l.source === filter);
@@ -93,6 +98,15 @@ export function SystemActivity() {
                         <option value="mobile" className="bg-background text-foreground">MOBILE_APP</option>
                         <option value="system" className="bg-background text-foreground">BACKEND_SYS</option>
                     </select>
+
+                    <button
+                        onClick={clearLogs}
+                        className="flex items-center gap-1.5 px-2 py-1 bg-background border border-border text-foreground rounded-sm hover:border-foreground transition-colors"
+                        title="Clear Logs"
+                    >
+                        <RiDeleteBinLine size={12} />
+                        CLEAR
+                    </button>
                 </div>
             </div>
 

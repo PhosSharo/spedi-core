@@ -7,10 +7,30 @@ import { apiFetch } from '@/lib/api';
 import { bearing, lerp, lerpBearing, routeProgress, haversine } from '@/lib/geo-utils';
 import type { Map as MaplibreMap, GeoJSONSource } from 'maplibre-gl';
 
-// Default center — Gulf of Thailand
-const DEFAULT_CENTER: [number, number] = [100.5, 13.75];
+// Operating region fallback — Gulf of Thailand (last resort only)
+const REGION_DEFAULT: [number, number] = [100.5, 13.75];
 const TELEMETRY_INTERVAL = 2000; // ms between pulses
-const MAX_TRAIL_POINTS = 500;
+const LS_KEY = 'spedi_last_pos';
+
+/** Read last known position from localStorage (synchronous, instant). */
+function getStoredPosition(): [number, number] | null {
+    try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return null;
+        const { lng, lat } = JSON.parse(raw);
+        if (typeof lng === 'number' && typeof lat === 'number' && (lng !== 0 || lat !== 0)) {
+            return [lng, lat];
+        }
+    } catch { /* corrupted — ignore */ }
+    return null;
+}
+
+/** Persist position to localStorage on every telemetry tick. */
+function storePosition(lng: number, lat: number) {
+    try {
+        localStorage.setItem(LS_KEY, JSON.stringify({ lng, lat }));
+    } catch { /* quota — ignore */ }
+}
 
 /**
  * LiveMap — real-time boat position tracker and route visualizer.
@@ -19,23 +39,33 @@ const MAX_TRAIL_POINTS = 500;
  * smooth position interpolation, heading indicator, GPS trail,
  * and route progress — all in-memory, zero API calls per tick.
  */
-export function LiveMap() {
+export function LiveMap({ isVisible = true }: { isVisible?: boolean }) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<MaplibreMap | null>(null);
     const rafRef = useRef<number>(0);
     const [isExpanded, setIsExpanded] = useState(false);
     const [mapLoaded, setMapLoaded] = useState(false);
 
+    // Resolve initial center: localStorage > region default
+    const initialCenter = useRef<[number, number]>(getStoredPosition() ?? REGION_DEFAULT);
+
     // Interpolation state (refs for rAF access without re-renders)
-    const prevPos = useRef<{ lat: number; lng: number }>({ lat: DEFAULT_CENTER[1], lng: DEFAULT_CENTER[0] });
-    const nextPos = useRef<{ lat: number; lng: number }>({ lat: DEFAULT_CENTER[1], lng: DEFAULT_CENTER[0] });
+    const prevPos = useRef<{ lat: number; lng: number }>({ lat: initialCenter.current[1], lng: initialCenter.current[0] });
+    const nextPos = useRef<{ lat: number; lng: number }>({ lat: initialCenter.current[1], lng: initialCenter.current[0] });
     const prevBearing = useRef(0);
     const nextBearing = useRef(0);
     const lastPulseTime = useRef(0);
     const hasReceivedTelemetry = useRef(false);
 
-    // Trail buffer — real GPS fixes only
+    // Trail buffer — accumulates during session/mission, clears on mode→idle
     const trailCoords = useRef<Array<[number, number]>>([]);
+    const trailTimestamps = useRef<Array<number>>([]);
+    const sessionStartTime = useRef<number | null>(null);
+    const lastMode = useRef<string | null>(null);
+
+    // deck.gl refs
+    const overlayRef = useRef<any>(null);
+    const tripsLayerClassRef = useRef<any>(null);
 
     // Route state
     const routeWaypoints = useRef<Array<{ lat: number; lng: number }> | null>(null);
@@ -47,15 +77,19 @@ export function LiveMap() {
         let cancelled = false;
 
         (async () => {
-            // Dynamic import — MapLibre needs `window`
+            // Dynamic import — MapLibre and deck.gl need `window`
             const maplibregl = (await import('maplibre-gl')).default;
+            const { MapboxOverlay } = await import('@deck.gl/mapbox');
+            const { TripsLayer } = await import('@deck.gl/geo-layers');
 
             if (cancelled || !mapContainerRef.current) return;
 
+            tripsLayerClassRef.current = TripsLayer;
+
             map = new maplibregl.Map({
                 container: mapContainerRef.current,
-                style: 'https://tiles.openfreemap.org/styles/dark',
-                center: DEFAULT_CENTER,
+                style: '/map-style-dark.json',
+                center: initialCenter.current,
                 zoom: 15,
                 attributionControl: false,
             });
@@ -72,7 +106,7 @@ export function LiveMap() {
                 // ── Boat position source + layer ───────────────
                 map.addSource('boat-position', {
                     type: 'geojson',
-                    data: { type: 'Feature', geometry: { type: 'Point', coordinates: DEFAULT_CENTER }, properties: {} },
+                    data: { type: 'Feature', geometry: { type: 'Point', coordinates: initialCenter.current }, properties: {} },
                 });
 
                 map.addLayer({
@@ -98,22 +132,13 @@ export function LiveMap() {
                     },
                 });
 
-                // ── Travel trail source + layer ────────────────
-                map.addSource('travel-trail', {
-                    type: 'geojson',
-                    data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {} },
+                // ── deck.gl Overlay for TripsLayer ──────────────
+                const overlay = new MapboxOverlay({
+                    interleaved: true,
+                    layers: []
                 });
-
-                map.addLayer({
-                    id: 'travel-trail-layer',
-                    type: 'line',
-                    source: 'travel-trail',
-                    layout: { 'line-join': 'round', 'line-cap': 'round' },
-                    paint: {
-                        'line-color': 'rgba(240,240,240,0.35)',
-                        'line-width': 2,
-                    },
-                });
+                overlayRef.current = overlay;
+                map.addControl(overlay as any);
 
                 // ── Route line source + layers ─────────────────
                 map.addSource('route-line', {
@@ -161,11 +186,10 @@ export function LiveMap() {
                     },
                 });
 
-                // Move trail + route below boat marker
-                map.moveLayer('travel-trail-layer', 'boat-pulse');
-                map.moveLayer('route-line-bg', 'travel-trail-layer');
-                map.moveLayer('route-line-layer', 'travel-trail-layer');
-                map.moveLayer('route-waypoints-layer', 'travel-trail-layer');
+                // Move route lines below boat marker
+                map.moveLayer('route-line-bg', 'boat-pulse');
+                map.moveLayer('route-line-layer', 'boat-pulse');
+                map.moveLayer('route-waypoints-layer', 'boat-pulse');
 
                 setMapLoaded(true);
 
@@ -245,6 +269,30 @@ export function LiveMap() {
                 });
             }
 
+            // Draw deck.gl TripsLayer
+            if (overlayRef.current && tripsLayerClassRef.current && sessionStartTime.current !== null && lastMode.current && lastMode.current !== 'idle') {
+                const currentTime = Date.now() - sessionStartTime.current;
+                const TripsLayer = tripsLayerClassRef.current;
+                
+                overlayRef.current.setProps({
+                    layers: [
+                        new TripsLayer({
+                            id: 'travel-trail',
+                            data: trailCoords.current.length >= 2 ? [{ path: trailCoords.current, timestamps: trailTimestamps.current }] : [],
+                            getPath: (d: any) => d.path,
+                            getTimestamps: (d: any) => d.timestamps,
+                            getColor: [255, 255, 255],
+                            opacity: 0.8,
+                            widthMinPixels: 4,
+                            trailLength: 604800000, // 7 days (never fades out during single mission)
+                            currentTime: currentTime
+                        })
+                    ]
+                });
+            } else if (overlayRef.current) {
+                overlayRef.current.setProps({ layers: [] });
+            }
+
             rafRef.current = requestAnimationFrame(animate);
         };
 
@@ -295,23 +343,45 @@ export function LiveMap() {
         lastPulseTime.current = now;
         hasReceivedTelemetry.current = true;
 
-        // Add to trail (real fixes only)
-        trailCoords.current.push([lng, lat]);
-        if (trailCoords.current.length > MAX_TRAIL_POINTS) {
-            trailCoords.current = trailCoords.current.slice(-MAX_TRAIL_POINTS);
+        // Persist to localStorage on every tick
+        storePosition(lng, lat);
+
+        // ── Trail clearing on mode→idle ──────────────────────
+        const currentMode = payload.mode ?? null;
+        
+        // Start session if transitioning into active mode
+        if (currentMode && currentMode !== 'idle' && (!lastMode.current || lastMode.current === 'idle')) {
+            sessionStartTime.current = Date.now();
         }
 
-        // Update trail on map
-        const map = mapRef.current;
-        if (map) {
-            const trailSrc = map.getSource('travel-trail') as GeoJSONSource | undefined;
-            if (trailSrc && trailCoords.current.length >= 2) {
-                trailSrc.setData({
-                    type: 'Feature',
-                    geometry: { type: 'LineString', coordinates: trailCoords.current },
-                    properties: {},
-                });
+        if (lastMode.current && lastMode.current !== 'idle' && currentMode === 'idle') {
+            // Session or mission just ended — clear the trail
+            trailCoords.current = [];
+            trailTimestamps.current = [];
+            sessionStartTime.current = null;
+            if (overlayRef.current) overlayRef.current.setProps({ layers: [] });
+
+            const map = mapRef.current;
+            if (map) {
+                // Also clear route progress visualization
+                const routeSrc = map.getSource('route-line') as GeoJSONSource | undefined;
+                if (routeSrc) {
+                    routeSrc.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {} });
+                }
+                const wpSrc = map.getSource('route-waypoints') as GeoJSONSource | undefined;
+                if (wpSrc) {
+                    wpSrc.setData({ type: 'FeatureCollection', features: [] });
+                }
+                routeWaypoints.current = null;
+                currentWaypointIndex.current = 0;
             }
+        }
+        lastMode.current = currentMode;
+
+        // Add to trail (accumulates during active session/mission, no rolling cap)
+        if (currentMode && currentMode !== 'idle') {
+            trailCoords.current.push([lng, lat]);
+            trailTimestamps.current.push(sessionStartTime.current ? Date.now() - sessionStartTime.current : 0);
         }
 
         // Update waypoint index for route progress
@@ -409,6 +479,14 @@ export function LiveMap() {
             return () => clearTimeout(timer);
         }
     }, [isExpanded]);
+
+    // Handle resize when tab visibility changes
+    useEffect(() => {
+        if (isVisible && mapRef.current) {
+            const timer = setTimeout(() => mapRef.current?.resize(), 50);
+            return () => clearTimeout(timer);
+        }
+    }, [isVisible]);
 
     // Handle Escape key to close fullscreen
     useEffect(() => {

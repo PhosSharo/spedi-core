@@ -86,28 +86,47 @@ function GuidesTab() {
                 {/* 1. Architecture & Connection Specs */}
                 <SpecPanel id="architecture" title="1. Architecture & Connection Properties" icon={RiServerLine}>
                     <div className="text-xs text-muted-foreground leading-relaxed space-y-6">
+                        <p>
+                            SPEDI implements the standard IoT Device Shadow architecture. This pattern maintains a persistent virtual representation of the device state, enabling reliable interaction regardless of physical connectivity status.
+                        </p>
                         
-                        <div className="p-3 border border-border bg-foreground/5 rounded-sm space-y-2 font-mono text-xs">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="border border-border p-3 bg-muted/5 rounded-sm">
+                                <p className="font-bold text-foreground mb-1 underline decoration-border underline-offset-4">Desired State</p>
+                                <p>Requested configuration/commands sent by clients. Updated via WebSocket and published to the MQTT command topic.</p>
+                            </div>
+                            <div className="border border-border p-3 bg-muted/5 rounded-sm">
+                                <p className="font-bold text-foreground mb-1 underline decoration-border underline-offset-4">Reported State</p>
+                                <p>Actual sensor/motor telemetry broadcasted by the hardware. Synced to the shadow via the MQTT status topic.</p>
+                            </div>
+                        </div>
+
+                        <div className="p-3 border border-border bg-foreground/5 rounded-sm space-y-2 font-mono text-[11px]">
                             <p className="font-bold font-sans uppercase tracking-widest text-foreground pb-2 border-b border-border/50">Core Endpoints & Ports</p>
                             
-                            <div className="flex justify-between items-center py-1">
+                            <div className="flex justify-between items-center py-0.5">
                                 <span className="text-muted-foreground">REST API Base</span> 
                                 <span className="text-right break-all text-foreground">{getApiUrl()}</span>
                             </div>
                             
-                            <div className="flex justify-between items-center py-1">
-                                <span className="text-muted-foreground">SSE Events Stream</span> 
+                            <div className="flex justify-between items-center py-0.5">
+                                <span className="text-muted-foreground">SSE Events</span> 
                                 <span className="text-right break-all text-foreground">{getApiUrl()}/events</span>
                             </div>
                             
-                            <div className="flex justify-between items-center py-1 border-t border-border/50 pt-3 mt-1">
-                                <span className="text-muted-foreground">MQTT Public Proxy (ESP32)</span> 
+                            <div className="flex justify-between items-center py-0.5">
+                                <span className="text-muted-foreground">WebSocket</span> 
+                                <span className="text-right break-all text-foreground">{getApiUrl().replace(/^http/, 'ws')}/control</span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center py-0.5 border-t border-border/50 pt-3 mt-1">
+                                <span className="text-muted-foreground">MQTT Public Proxy</span> 
                                 <span className="text-right break-all text-foreground">centerbeam.proxy.rlwy.net : 14546</span>
                             </div>
                             
-                            <div className="flex justify-between items-center py-1">
-                                <span className="text-muted-foreground">MQTT Internal (Backend)</span> 
-                                <span className="text-right break-all text-foreground">mosquitto.railway.internal : 1883</span>
+                            <div className="flex justify-between items-center py-0.5">
+                                <span className="text-muted-foreground">MQTT Internal</span> 
+                                <span className="text-right break-all text-foreground">1883</span>
                             </div>
                         </div>
 

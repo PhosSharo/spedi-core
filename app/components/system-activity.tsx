@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { getToken } from '@/lib/auth-store';
 import { getApiUrl } from '@/lib/api';
-import { RiTerminalBoxLine, RiFilter3Line } from '@remixicon/react';
+import { RiTerminalBoxLine, RiFilter3Line, RiTestTubeLine } from '@remixicon/react';
+import { Modal } from './modal';
 
 export type LogSource = 'arduino' | 'mobile' | 'system';
 export type LogLevel = 'info' | 'warn' | 'error';
@@ -23,6 +24,13 @@ export function SystemActivity() {
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [filter, setFilter] = useState<'all' | LogSource>('all');
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+    // Simulate Event State
+    const [isSimulateModalOpen, setIsSimulateModalOpen] = useState(false);
+    const [simulateTopic, setSimulateTopic] = useState('spedi/vehicle/status');
+    const [simulatePayload, setSimulatePayload] = useState('{\n  "device_id": "test-device-01",\n  "lat": 13.75,\n  "lng": 100.50,\n  "obstacle_left": 45,\n  "obstacle_right": 120,\n  "smart_move_active": false\n}');
+    const [isSimulating, setIsSimulating] = useState(false);
+
     const eventSourceRef = useRef<EventSource | null>(null);
 
     useEffect(() => {
@@ -97,6 +105,36 @@ export function SystemActivity() {
         }
     };
 
+    const handleSimulate = async () => {
+        try {
+            setIsSimulating(true);
+            const token = getToken();
+            const parsedPayload = JSON.parse(simulatePayload);
+            const res = await fetch(`${getApiUrl()}/debug/telemetry`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    topic: simulateTopic,
+                    payload: parsedPayload
+                })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to send');
+            }
+
+            setIsSimulateModalOpen(false);
+        } catch (err: any) {
+            alert(`Simulation failed: ${err.message}`);
+        } finally {
+            setIsSimulating(false);
+        }
+    };
+
     return (
         <div className="w-full h-full flex flex-col border border-border bg-background rounded-sm overflow-hidden min-h-[400px]">
             {/* Header */}
@@ -107,6 +145,15 @@ export function SystemActivity() {
                 </div>
 
                 <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                    <button
+                        onClick={() => setIsSimulateModalOpen(true)}
+                        className="flex items-center gap-1 hover:text-foreground hover:bg-muted/50 px-2 py-1 rounded-sm border border-transparent hover:border-border transition-colors mr-2"
+                        title="Inject Test Payload"
+                    >
+                        <RiTestTubeLine size={12} />
+                        Simulate Event
+                    </button>
+
                     <RiFilter3Line size={12} />
                     <select
                         value={filter}
@@ -165,7 +212,62 @@ export function SystemActivity() {
                     ))
                 )
                 }
-            </div >
-        </div >
+            </div>
+
+            {/* Simulate Event Modal */}
+            <Modal
+                isOpen={isSimulateModalOpen}
+                onClose={() => setIsSimulateModalOpen(false)}
+                title="Simulate / Inject Event"
+            >
+                <div className="flex flex-col gap-4">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground font-sans">
+                            Topic
+                        </label>
+                        <input
+                            type="text"
+                            value={simulateTopic}
+                            onChange={(e) => setSimulateTopic(e.target.value)}
+                            className="w-full bg-background border border-border text-foreground font-mono text-xs p-2 rounded-sm focus:outline-none focus:border-foreground transition-colors"
+                            placeholder="e.g. spedi/vehicle/status"
+                        />
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground font-sans">
+                            JSON Payload
+                        </label>
+                        <textarea
+                            value={simulatePayload}
+                            onChange={(e) => setSimulatePayload(e.target.value)}
+                            className="w-full bg-muted/10 border border-border text-foreground font-mono text-xs p-3 rounded-sm min-h-[160px] focus:outline-none focus:border-foreground transition-colors"
+                            spellCheck={false}
+                        />
+                    </div>
+
+                    <p className="text-[9px] text-muted-foreground leading-relaxed">
+                        This injects a mock payload directly into the backend telemetry stream. It bypasses MQTT but will trigger system state updates, DB inserts, and SSE broadcasts exactly like a real device.
+                    </p>
+
+                    <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-border">
+                        <button
+                            onClick={() => setIsSimulateModalOpen(false)}
+                            className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest font-sans border border-border text-muted-foreground hover:text-foreground rounded-sm transition-colors"
+                            disabled={isSimulating}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSimulate}
+                            disabled={isSimulating}
+                            className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest font-sans bg-foreground text-background border border-foreground hover:bg-foreground/90 rounded-sm transition-all disabled:opacity-50"
+                        >
+                            {isSimulating ? 'Sending...' : 'Inject Payload'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
     );
 }

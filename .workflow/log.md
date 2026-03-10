@@ -74,6 +74,17 @@
 > Implemented /devices list, /devices/:id detail, and superuser-only registration.
 > Added /devices/:id/state stub shadow endpoint for Phase 5 integration.
 
+41 | FEAT    | Documentation & Polish — Telemetry Simulation
+> Enhanced `SystemActivity` simulate modal with pre-fill buttons (`STATUS_GEN`, `OBSTACLE_WARN`, `ROUTE_EXEC`).
+> Fixed character encoding errors (`â€”` to `—`) in backend and agent mastery documents.
+
+42 | FEAT    | API Reference & Documentation — RBAC Visibility
+> Restricted "API Reference" tab in `/docs` to superusers only by verifying `is_superuser` claim in the JWT.
+> Added comprehensive "User Management" section to documentation guides.
+> Updated "Telemetry" and "Authentication" guide sections with RBAC and simulation details.
+> Refined backend OpenAPI (Swagger) tags: added `Telemetry`, `Users`, `Debug`, and reassigned endpoints for better discovery.
+> Fixed JSX nesting and formatting issues in `app/docs/page.tsx`.
+
 16 | FEAT    | Implemented Dashboard Config Manager Page
 > Created /config route in Next.js App Router for configuration management.
 > Implemented superuser protection and automatic redirect for unauthorized users.
@@ -200,3 +211,23 @@
 > Rewrote `/docs` as a two-tab layout: Guides (IoT/Arduino + Mobile/Flutter conceptual docs) and API Reference (Scalar with auto-injected JWT, forced dark mode).
 > Added OpenAPI `example` values to `auth.ts`, `devices.ts`, `session.ts`, `routes.ts` so Scalar pre-populates realistic payloads.
 > Verified clean build: `npm run build` — 0 errors, route table confirms `/docs` present and `/testing` absent.
+
+38 | FEAT    | Implemented User Management Service (Supabase Admin)
+> Created `UserService` using `@supabase/supabase-js` Admin Auth API.
+> Enables superusers to list, create, update, and delete standard accounts.
+> Strict enforcement: no superuser elevation possible via API.
+
+39 | FEAT    | User Management API Routes & Swagger Mocks
+> Created `src/routes/users.ts` with full CRUD support for superusers.
+> Added realistic OpenAPI examples for Scalar documentation.
+> Registered `userRoutes` in `src/server.ts`.
+
+40 | FEAT    | Role-Based Access Control (RBAC) Dashboard Guards
+> Implemented route guards in `DashboardLayout` to redirect non-superusers to `/docs`.
+> Updated `Sidebar` to dynamically hide administrative tabs for standard users.
+> Ensures the dashboard remains documentation-only for non-privileged accounts.
+
+41 | FEAT    | User Management Frontend Interface
+> Created `app/users/page.tsx` with CRUD modals matching the terminal aesthetic.
+> Integrated "USERS" navigation link into the sidebar for superusers.
+> Verified end-to-end functionality and production build.

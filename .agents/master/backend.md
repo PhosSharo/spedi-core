@@ -1,13 +1,25 @@
 ﻿# SPEDI Backend Design Document
 
-**Stack:** Node.js 20 + Fastify â€” Mosquitto on Railway â€” Supabase PostgreSQL + Auth â€” Next.js dashboard on Vercel  
+**Stack:** Node.js 20 + Fastify — Mosquitto on Railway — Supabase PostgreSQL + Auth — Next.js dashboard on Vercel  
 **Status:** Pre-build. Authoritative reference.
+
+---
+
+SPEDI is an IoT-based RC boat built on ESP32-S3 architecture, communicating over a 4G LTE cellular module (SIM7600/A7670C) via MQTT over a self-hosted Mosquitto broker. The hardware is not the concern of the backend engineer. The concern is the server that sits between a mobile application and the physical device, and what that server's role and responsibilities genuinely are.
+
+## The Core Problem
+
+The backend must mediate between three distinct clients — a Flutter controller app, a Next.js admin dashboard, and the boat — relaying commands in one direction and telemetry in the other, while holding genuine authority over system state and configuration. The architectural risk was designing a server that is merely a dumb relay with no logic of its own. A secondary constraint is latency: joystick control must be as fast as possible, meaning nothing in the command hot path should touch a database, re-validate credentials, or await anything.
+
+All API interaction is documented and interactively testable via the dashboard's `/docs` portal, which parses the Fastify OpenAPI spec and auto-injects Supabase session tokens for seamless "Try It" debugging.
+
+Two interaction modes: **manual** (joystick stream over WebSocket) and **auto** (route dispatched once over REST). Hot path for joystick must never touch the database or await anything.
 
 ---
 
 ## Domain Summary
 
-Backend mediates between three clients â€” Flutter controller app, Next.js admin dashboard, physical boat â€” using the Device Shadow pattern. Server holds `desired` state (what the boat should do), device reports `reported` state (what it is doing). Server is the sole MQTT publisher to command topics. App never touches MQTT directly.
+Backend mediates between three clients — Flutter controller app, Next.js admin dashboard, physical boat — using the Device Shadow pattern. Server holds `desired` state (what the boat should do), device reports `reported` state (what it is doing). Server is the sole MQTT publisher to command topics. App never touches MQTT directly.
 
 All API interaction is documented and interactively testable via the dashboard's `/docs` portal, which parses the Fastify OpenAPI spec and auto-injects Supabase session tokens for seamless "Try It" debugging.
 
@@ -18,9 +30,9 @@ Two interaction modes: **manual** (joystick stream over WebSocket) and **auto** 
 ## Entity Relationship
 
 ```
-users â”€â”€< devices â”€â”€< sessions
-              â”‚  â”€â”€< routes
-              â””â”€â”€< telemetry
+users ──< devices ──< sessions
+              │  ──< routes
+              └──< telemetry
 
 config  (global key-value, no device FK in MVP)
 ```
@@ -28,19 +40,19 @@ config  (global key-value, no device FK in MVP)
 **users** `id, email, is_superuser bool, created_at`  
 Extends Supabase auth.users via trigger. `is_superuser` never writable through API. Set only by deploy-time seed script.
 
-**devices** `id, name, mqtt_client_id unique, owner_idâ†’users, created_at, last_seen_at`  
-`mqtt_client_id` ties a physical device to a record. `last_seen_at` updated async on telemetry â€” never blocks ingestion.
+**devices** `id, name, mqtt_client_id unique, owner_id→users, created_at, last_seen_at`  
+`mqtt_client_id` ties a physical device to a record. `last_seen_at` updated async on telemetry — never blocks ingestion.
 
 **sessions** `id, device_idâ†’devices, user_idâ†’users, started_at, ended_at nullable, end_reason`  
 One active session per device at a time. Enforced in application layer, not DB constraint. `end_reason` values: `user_disconnect`, `timeout`, `server_restart`, `superseded`. On server startup, all sessions with `ended_at = null` are closed with `server_restart`.
 
-**routes** `id, device_idâ†’devices, created_byâ†’users, name, waypoints jsonb, status, created_at, dispatched_at, completed_at`  
-`waypoints` is JSONB array of `{lat, lng}` â€” always read/written as a unit, never partially updated. `status` values: `draft`, `active`, `completed`, `aborted`. One `active` route per device enforced in application layer.
+**routes** `id, device_id→devices, created_by→users, name, waypoints jsonb, status, created_at, dispatched_at, completed_at`  
+`waypoints` is JSONB array of `{lat, lng}` — always read/written as a unit, never partially updated. `status` values: `draft`, `active`, `completed`, `aborted`. One `active` route per device enforced in application layer.
 
-**telemetry** `id bigserial, device_idâ†’devices, recorded_at, raw jsonb`  
+**telemetry** `id bigserial, device_id→devices, recorded_at, raw jsonb`  
 Append-only. `raw` stores the full device payload verbatim. This is the truest form of the Tolerant Reader pattern: no device-sent fields are presumed stable. Querying values like GPS or obstacle readings is done via JSONB operators (e.g., `raw->>'lat'`). When a field stabilizes and requires indexing, it is promoted to a generated column or a typed column via migration. Payloads exceeding the configurable `telemetry_max_payload_bytes` limit are silently dropped at ingestion.
 
-**config** `id serial, key unique, value text, description, updated_at, updated_byâ†’users`  
+**config** `id serial, key unique, value text, description, updated_at, updated_by→users`  
 Flat key-value. All values stored as text; application layer parses. Known keys: `mqtt_broker_host`, `mqtt_broker_port`, `mqtt_topic_joystick`, `mqtt_topic_route`, `mqtt_topic_status`, `joystick_timeout_ms`, `telemetry_interval_ms`, `telemetry_field_map` (JSON: maps device payload keys to shadow keys), `telemetry_max_payload_bytes` (integer: max payload size, default 4096).
 
 ---
@@ -50,7 +62,7 @@ Flat key-value. All values stored as text; application layer parses. Known keys:
 ### Auth
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
-| POST | `/auth/login` | â€” | Returns JWT. Delegates to Supabase Auth. |
+| POST | `/auth/login` | — | Returns JWT. Delegates to Supabase Auth. |
 | POST | `/auth/logout` | required | Closes active session if exists, publishes idle to device. |
 | GET | `/auth/me` | required | Returns `{id, email, is_superuser}`. |
 
@@ -90,6 +102,14 @@ Flat key-value. All values stored as text; application layer parses. Known keys:
 | GET | `/config` | superuser | All config rows. |
 | PUT | `/config` | superuser | Body: `{updates: [{key, value}]}`. Writes to DB, hot-reloads affected services. Returns `{reloaded: bool}`. |
 
+### Users (Superuser Only)
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| GET | `/users` | superuser | List of all authentication users. |
+| POST | `/users` | superuser | Creates standard user account. Superuser elevation forbidden. |
+| PUT | `/users/:id` | superuser | Updates email or password. Superuser status immutable. |
+| DELETE | `/users/:id` | superuser | Permanently deletes account. Self-deletion forbidden. |
+
 ### Realtime
 | Protocol | Path | Auth | Notes |
 |----------|------|------|-------|
@@ -100,11 +120,12 @@ Flat key-value. All values stored as text; application layer parses. Known keys:
 
 ## Authentication and Authorization
 
-Supabase Auth issues JWTs with custom claim `app_metadata.is_superuser` injected via DB trigger at login. Backend verifies JWT locally using Supabase JWT secret â€” no network call per request. Fastify `preHandler` hook attaches `request.user = {id, is_superuser}`.
+Supabase Auth issues JWTs with custom claim `app_metadata.is_superuser` injected via DB trigger at login. Backend verifies JWT locally using JWKS (ES256) cached from Supabase Auth service — no shared secret required. Fastify `preHandler` hook attaches `request.user = {id, is_superuser}` to the request.
 
-- **Authenticated:** any valid JWT
-- **Superuser:** `request.user.is_superuser === true`
-- **Session owner:** requesting user must own the active session on the target device
+- **Authenticated:** any valid JWT.
+- **Superuser:** `request.user.is_superuser === true`. Full administrative access including config and user management.
+- **Session owner:** requesting user must own the active session on the target device.
+- **Standard User (Dashboard RBAC):** non-superusers are automatically redirected to the Documentation (`/docs`) path. All other dashboard routes (Dashboard, Devices, Config, Users) are hidden and logically guarded.
 
 WebSocket uses `?token=` query param â€” browser WebSocket implementations do not reliably support Authorization headers during upgrade.
 
@@ -112,9 +133,11 @@ WebSocket uses `?token=` query param â€” browser WebSocket implementations 
 
 ## Service Boundaries
 
-**AuthService** â€” wraps Supabase Auth. Exposes `verify(token)`. Stateless.
+**AuthService** — wraps Supabase Auth. Exposes `verify(token)` via JWKS (asymmetric ES256).
 
-**DeviceService** â€” owns in-memory shadow `{desired, reported}`. Single mutation point. The `reported` side is a dynamic `Record<string, any>` driven by the `telemetry_field_map` config entry. If a mapping is configured, only mapped device keys are extracted; otherwise all keys pass through (tolerant reader). Exposes `getState()`, `setDesired(partial)`, `updateReported(payload)`, `publishJoystick(payload)`, `publishRoute(action, waypoints)`.
+**UserService** — performs administrative CRUD operations on authentication accounts using the Supabase Service Role (Admin) key. Strictly prevents promotion to superuser status via API paths.
+
+**DeviceService** — owns in-memory shadow `{desired, reported}`. Single mutation point. The `reported` side is a dynamic `Record<string, any>` driven by the `telemetry_field_map` config entry. If a mapping is configured, only mapped device keys are extracted; otherwise all keys pass through (tolerant reader). Exposes `getState()`, `setDesired(partial)`, `updateReported(payload)`, `publishJoystick(payload)`, `publishRoute(action, waypoints)`.
 
 **SessionService** â€” owns session lifecycle and in-memory session map. Exposes `open(userId, deviceId)`, `close(userId, reason)`, `getActive(deviceId)`, `isActive(userId)`. Cleans orphaned sessions on startup.
 
@@ -139,7 +162,7 @@ WebSocket uses `?token=` query param â€” browser WebSocket implementations 
 2. No `active` route exists for device (DB query â€” acceptable, low-frequency)
 3. Requesting user has active session on device (memory)
 
-**Route completion detection:** When `reported.autopilot_active` transitions `true â†’ false` while a route is `active`, mark route `completed`. Async DB write.
+**Route completion detection:** When `reported.autopilot_active` transitions `true → false` while a route is `active`, mark route `completed`. Async DB write.
 
 **Config hot reload:** Apply updates to memory map, notify affected services. MQTT topic changes â†’ resubscribe. Broker host/port changes â†’ full reconnect. Rollback DB write if reload fails.
 
@@ -155,26 +178,26 @@ WebSocket uses `?token=` query param â€” browser WebSocket implementations 
 
 **Joystick hot path:**
 ```
-Flutter â†’ WS frame â†’ check session (memory) â†’ check smart_move (memory)
-â†’ DeviceService.publishJoystick â†’ MQTT.publish (fire/forget) â†’ Mosquitto â†’ Device
+Flutter → WS frame → check session (memory) → check smart_move (memory)
+→ DeviceService.publishJoystick → MQTT.publish (fire/forget) → Mosquitto → Device
 ```
 Zero awaits. Zero DB touches.
 
 **Telemetry ingestion:**
 ```
-Device â†’ Mosquitto â†’ MQTTClient â†’ TelemetryService.ingest
-â†’ updateReported (sync, memory)
-â†’ RouteService.onTelemetry (sync, memory)
-â†’ SSE broadcast (sync, fire/forget)
-â†’ DB insert (async, not awaited)
-â†’ last_seen_at update (async, not awaited)
+Device → Mosquitto → MQTTClient → TelemetryService.ingest
+→ updateReported (sync, memory)
+→ RouteService.onTelemetry (sync, memory)
+→ SSE broadcast (sync, fire/forget)
+→ DB insert (async, not awaited)
+→ last_seen_at update (async, not awaited)
 ```
 
 **Payload schema evolution:**
 ```
-Any MQTT payload â†’ store full payload in telemetry.raw (jsonb)
-â†’ extract known fields into typed columns
-â†’ unknown fields survive in raw, no rejection
+Any MQTT payload → store full payload in telemetry.raw (jsonb)
+→ extract known fields into typed columns
+→ unknown fields survive in raw, no rejection
 ```
 
 ---
@@ -193,7 +216,7 @@ Any MQTT payload â†’ store full payload in telemetry.raw (jsonb)
 
 **Telemetry table growth.** ~43,200 rows/day. Supabase 500MB free tier. Retention policy needed before sustained operation.
 
-**Media evolution.** Camera transitioning to video stream is a separate protocol concern (WebRTC/HLS/RTSP) â€” must never be routed through MQTT or treated as telemetry.
+**Media evolution.** Camera transitioning to video stream is a separate protocol concern (WebRTC/HLS/RTSP) — must never be routed through MQTT or treated as telemetry.
 
 ---
 
@@ -203,4 +226,3 @@ Any MQTT payload â†’ store full payload in telemetry.raw (jsonb)
 2. **WebSocket reconnect grace period.** How long does a session persist after WS disconnect before auto-close? Affects SessionService implementation directly.
 3. **Route completion detection.** Accept ambiguity or require device-side completion event.
 4. **Telemetry chart downsampling.** Server-side time-bucket averaging, or defer.
-5. **Device registration flow.** Currently manual/superuser-only. SaaS future needs claim-token provisioning.

@@ -37,7 +37,7 @@ const telemetryRoutes: FastifyPluginAsync = async (fastify) => {
     fastify.get('/telemetry', {
         onRequest: [fastify.authenticate],
         schema: {
-            tags: ['Devices'],
+            tags: ['Telemetry'],
             summary: 'Query telemetry history',
             description: 'Returns raw telemetry records for a device within an optional date range. Uses cursor-based pagination ordered by recorded_at DESC. No downsampling — raw records only.',
             security: [{ BearerAuth: [] }],

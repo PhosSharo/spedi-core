@@ -80,10 +80,13 @@ fastify.register(swagger, {
         tags: [
             { name: 'Auth', description: 'Authentication endpoints' },
             { name: 'Devices', description: 'Device management and shadow state' },
+            { name: 'Telemetry', description: 'Historical telemetry and live stream (SSE)' },
+            { name: 'Users', description: 'User account management (superuser)' },
             { name: 'Sessions', description: 'Control session mutex' },
             { name: 'Routes', description: 'Autonomous route management' },
             { name: 'Config', description: 'System configuration (superuser)' },
             { name: 'Realtime', description: 'SSE and WebSocket streams' },
+            { name: 'Debug', description: 'Simulation and diagnostic tools' },
             { name: 'System', description: 'Health and diagnostics' },
         ],
     },

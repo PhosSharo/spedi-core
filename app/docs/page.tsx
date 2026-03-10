@@ -8,7 +8,7 @@ import {
     RiBookOpenLine, RiCodeLine, RiShieldCheckLine,
     RiWifiLine, RiSendPlaneLine, RiServerLine,
     RiLockLine, RiCheckboxCircleLine, RiAlertLine,
-    RiArrowRightSLine
+    RiArrowRightSLine, RiUserSettingsLine
 } from '@remixicon/react';
 
 // Scalar styles
@@ -78,6 +78,7 @@ function GuidesTab() {
                     { id: 'iot-integration', label: 'IoT Integration' },
                     { id: 'mobile-integration', label: 'Mobile Integration' },
                     { id: 'websocket', label: 'WebSocket Control' },
+                    { id: 'user-management', label: 'User Management' },
                     { id: 'telemetry', label: 'Telemetry Stream' },
                     { id: 'deployment', label: 'Deployment & Config' },
                 ].map(item => (
@@ -142,7 +143,10 @@ function GuidesTab() {
                         </div>
                         <div className="flex items-start gap-2">
                             <RiCheckboxCircleLine size={12} className="text-foreground mt-0.5 flex-shrink-0" />
-                            <p><strong>Superuser:</strong> Checked via the <code className="font-mono text-[10px] bg-muted/30 px-1 rounded-sm">is_superuser</code> claim in <code className="font-mono text-[10px] bg-muted/30 px-1 rounded-sm">app_metadata</code>. Required for device registration, deletion, and config mutation.</p>
+                            <p><strong>RBAC (Role-Based Access Control):</strong> User privileges are defined by the <code className="font-mono text-[10px] bg-muted/30 px-1 rounded-sm">is_superuser</code> claim.
+                                <br />• <strong>Superuser:</strong> Full administrative access to Devices, Config, and User Management.
+                                <br />• <strong>Standard User:</strong> Restricted to documentation only. Dashboard access is automatically redirected to <code className="font-mono text-[10px] bg-muted/30 px-1 rounded-sm">/docs</code>.
+                            </p>
                         </div>
                         <div className="flex items-start gap-2">
                             <RiAlertLine size={12} className="text-foreground mt-0.5 flex-shrink-0" />
@@ -318,6 +322,28 @@ channel.stream.listen((data) {
                     <p>Commands are silently dropped if <code className="font-mono text-[10px] bg-muted/30 px-1 rounded-sm">reported.smart_move_active</code> is <code className="font-mono text-[10px] bg-muted/30 px-1 rounded-sm">true</code> — the device's obstacle avoidance takes priority.</p>
                 </GuideSection>
 
+                {/* User Management */}
+                <GuideSection id="user-management" icon={RiUserSettingsLine} title="User_Management">
+                    <p>
+                        User accounts are managed exclusively by superusers through the dashboard or via the REST API. The system strictly separates administrative authority from standard operational access.
+                    </p>
+                    <p className="font-bold text-foreground">Provisioning</p>
+                    <p>
+                        New accounts are created as standard users by default. To provision a new superuser, a direct modification to the Supabase database or the initial seed script is required.
+                    </p>
+                    <div className="rounded-sm border border-border p-4 bg-muted/10 space-y-4">
+                        <div className="space-y-1">
+                            <p className="font-bold">ADMIN_CRUD</p>
+                            <p className="text-muted-foreground">The <Label>/users</Label> endpoint allows superusers to list, create, and manage credentials for all platform users. Email and password updates are supported.</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-bold">SECURITY_POLICY</p>
+                            <p className="text-muted-foreground italic">"Superusers cannot be created or promoted via the API."</p>
+                            <p className="text-muted-foreground leading-relaxed">This hard constraint prevents account takeovers from escalating to full system compromise. Even if a superuser account is compromised, they cannot provision additional superusers through the standard interface.</p>
+                        </div>
+                    </div>
+                </GuideSection>
+
                 {/* Telemetry */}
                 <GuideSection id="telemetry" icon={RiShieldCheckLine} title="Telemetry_Stream // SSE">
                     <p>
@@ -352,6 +378,11 @@ es.onmessage = (event) => {
   const data = JSON.parse(event.data);
   console.log(data.type, data.payload);
 };`}</CodeBlock>
+
+                    <p className="font-bold text-foreground">Simulation & Testing</p>
+                    <p>
+                        Developers can inject mock telemetry payloads directly through the dashboard's system activity panel. This allows testing of UI response and backend state transitions without a physical boat.
+                    </p>
                 </GuideSection>
 
                 {/* Deployment & Configuration */}
@@ -434,13 +465,28 @@ function ReferenceTab({ token }: { token: string | null }) {
 export default function DocsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('guides');
     const [token, setToken] = useState<string | null>(null);
+    const [isSuperuser, setIsSuperuser] = useState(false);
 
     // Sync token from auth-store
     useEffect(() => {
-        setToken(getToken());
-        const interval = setInterval(() => {
-            setToken(getToken());
-        }, 5000);
+        const syncAuth = () => {
+            const currentToken = getToken();
+            setToken(currentToken);
+
+            if (currentToken) {
+                try {
+                    const payload = JSON.parse(atob(currentToken.split('.')[1]));
+                    setIsSuperuser(payload.app_metadata?.is_superuser === true);
+                } catch (e) {
+                    setIsSuperuser(false);
+                }
+            } else {
+                setIsSuperuser(false);
+            }
+        };
+
+        syncAuth();
+        const interval = setInterval(syncAuth, 5000);
         return () => clearInterval(interval);
     }, []);
 
@@ -476,22 +522,29 @@ export default function DocsPage() {
 
             {/* Tab Switcher */}
             <div className="flex gap-1 flex-shrink-0">
-                {([
-                    { key: 'guides' as Tab, label: 'Guides', icon: RiBookOpenLine },
-                    { key: 'reference' as Tab, label: 'API Reference', icon: RiCodeLine },
-                ]).map(tab => (
+                <button
+                    onClick={() => setActiveTab('guides')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest font-sans transition-colors border ${activeTab === 'guides'
+                        ? 'bg-foreground text-background border-foreground'
+                        : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground'
+                        }`}
+                >
+                    <RiBookOpenLine size={14} />
+                    Guides
+                </button>
+
+                {isSuperuser && (
                     <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest font-sans transition-colors border ${activeTab === tab.key
+                        onClick={() => setActiveTab('reference')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest font-sans transition-colors border ${activeTab === 'reference'
                             ? 'bg-foreground text-background border-foreground'
                             : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground'
                             }`}
                     >
-                        <tab.icon size={14} />
-                        {tab.label}
+                        <RiCodeLine size={14} />
+                        API Reference
                     </button>
-                ))}
+                )}
             </div>
 
             {/* Tab Content */}

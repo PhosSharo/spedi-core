@@ -135,6 +135,49 @@ export function SystemActivity() {
         }
     };
 
+    const PREFILL_EXAMPLES = [
+        {
+            label: 'STATUS_GEN',
+            title: 'Normal Status',
+            payload: {
+                device_id: 'test-device-01',
+                lat: 13.7543,
+                lng: 100.5012,
+                obstacle_left: 450,
+                obstacle_right: 820,
+                smart_move_active: false,
+                sat_count: 8
+            }
+        },
+        {
+            label: 'OBSTACLE_WARN',
+            title: 'Obstacle Detected',
+            payload: {
+                device_id: 'test-device-01',
+                lat: 13.7543,
+                lng: 100.5012,
+                obstacle_left: 12,
+                obstacle_right: 154,
+                smart_move_active: true,
+                sat_count: 9
+            }
+        },
+        {
+            label: 'ROUTE_EXEC',
+            title: 'Route Progress',
+            payload: {
+                device_id: 'test-device-01',
+                lat: 13.7551,
+                lng: 100.5025,
+                obstacle_left: 500,
+                obstacle_right: 500,
+                smart_move_active: true,
+                waypoint_index: 3,
+                sat_count: 12
+            }
+        }
+    ];
+
     return (
         <div className="w-full h-full flex flex-col border border-border bg-background rounded-sm overflow-hidden min-h-[400px]">
             {/* Header */}
@@ -238,6 +281,18 @@ export function SystemActivity() {
                         <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground font-sans">
                             JSON Payload
                         </label>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                            {PREFILL_EXAMPLES.map((ex) => (
+                                <button
+                                    key={ex.label}
+                                    onClick={() => setSimulatePayload(JSON.stringify(ex.payload, null, 2))}
+                                    className="text-[9px] font-mono px-2 py-1 rounded-sm border border-border hover:border-foreground/50 hover:bg-muted/50 transition-all text-muted-foreground hover:text-foreground"
+                                    type="button"
+                                >
+                                    [{ex.label}]
+                                </button>
+                            ))}
+                        </div>
                         <textarea
                             value={simulatePayload}
                             onChange={(e) => setSimulatePayload(e.target.value)}

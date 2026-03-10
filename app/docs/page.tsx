@@ -547,7 +547,7 @@ function ReferenceTab({ token }: { token: string | null }) {
         <div className="flex-1 flex flex-col overflow-y-auto rounded-sm border border-border">
             <ApiReferenceReact
                 configuration={{
-                    url: `${getApiUrl()}/openapi.json`,
+                    url: `${getApiUrl()}/openapi.json?v=${Date.now()}`,
                     theme: 'kepler',
                     layout: 'classic',
                     hideModels: true,

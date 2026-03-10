@@ -522,6 +522,33 @@ export default function TestingPage() {
         }
     };
 
+    const [creatingDevice, setCreatingDevice] = useState(false);
+
+    const createTestDevice = async () => {
+        setCreatingDevice(true);
+        try {
+            const res = await apiFetch('/devices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: `test-boat-${String(Date.now()).slice(-4)}`,
+                    mqtt_client_id: `test-client-${String(Date.now()).slice(-4)}`,
+                }),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || `HTTP ${res.status}`);
+            }
+            const newDevice = await res.json();
+            setDevices(prev => [...prev, newDevice]);
+        } catch (err: any) {
+            console.error('Failed to create test device:', err);
+            alert(`Failed: ${err.message}`);
+        } finally {
+            setCreatingDevice(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-black flex flex-col gap-4 items-center justify-center text-zinc-500">
@@ -541,11 +568,32 @@ export default function TestingPage() {
                     <p className="text-zinc-400 mt-1">Simulate joystick input and autonomous path dispatch against real API endpoints.</p>
                 </div>
 
-                <div className="grid gap-8 lg:grid-cols-1">
-                    <JoystickSimulator devices={devices} />
-                    <PathSimulator devices={devices} />
-                </div>
+                {devices.length === 0 ? (
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-12 text-center">
+                        <div className="bg-violet-500/10 text-violet-400 p-4 rounded-2xl inline-block mb-4">
+                            <RiGamepadLine size={32} />
+                        </div>
+                        <h2 className="text-xl font-semibold text-zinc-100 mb-2">No devices registered</h2>
+                        <p className="text-zinc-400 mb-6 max-w-md mx-auto">
+                            Create a test device to start experimenting with the joystick and path simulators. Test devices are safe to remove later.
+                        </p>
+                        <button
+                            onClick={createTestDevice}
+                            disabled={creatingDevice}
+                            className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium px-6 py-3 rounded-xl transition-colors text-sm"
+                        >
+                            {creatingDevice ? <RiLoader4Line className="animate-spin" size={18} /> : <RiGamepadLine size={18} />}
+                            {creatingDevice ? 'Creating...' : 'Create Test Device'}
+                        </button>
+                    </div>
+                ) : (
+                    <div className="grid gap-8 lg:grid-cols-1">
+                        <JoystickSimulator devices={devices} />
+                        <PathSimulator devices={devices} />
+                    </div>
+                )}
             </main>
         </div>
     );
 }
+

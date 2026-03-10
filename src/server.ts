@@ -117,7 +117,18 @@ fastify.register(swagger, {
             { name: 'System', description: 'Health check and diagnostics.' },
             { name: 'Camera', description: 'Latest ESP32-CAM snapshot retrieval.' },
         ],
+        servers: [],
     },
+    transformObject(swaggerObject: any) {
+        if (swaggerObject && swaggerObject.paths) {
+            for (const path in swaggerObject.paths) {
+                if (swaggerObject.paths[path].options) {
+                    delete swaggerObject.paths[path].options;
+                }
+            }
+        }
+        return swaggerObject;
+    }
 });
 
 // Expose spec at GET /openapi.json

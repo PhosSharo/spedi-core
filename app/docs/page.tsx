@@ -128,25 +128,6 @@ function OverviewSection() {
                     The shadow is authoritative. If the device disconnects and reconnects, the current desired state is immediately available for reconciliation. The shadow is lost on server restart — the device&apos;s built-in 2000ms command timeout stops motors, which is acceptable for a supervised MVP.
                 </p>
             </Subsection>
-
-            <Subsection title="Data Flow">
-                <CodeBlock lang="text" title="Topology">{`┌──────────────┐    MQTT     ┌─────────────┐    SSE     ┌───────────────┐
-    │  ESP32       │ ──────────▶ │   Fastify   │ ────────▶ │  Dashboard    │
-    │  (Arduino)   │ ◀────────── │   Server    │           │  (Next.js)    │
-    └──────────────┘   Commands  │             │           └───────────────┘
-                                │   Railway   │
-    ┌──────────────┐     WS      │             │
-    │  Flutter     │ ──────────▶ │             │
-    │  (Mobile)    │   Joystick  └──────┬──────┘
-    └──────────────┘                    │
-                                ┌─────▼──────┐
-                                │  Supabase   │
-                                │  PostgreSQL │
-                                └────────────┘`}</CodeBlock>
-                <p className="mt-2">
-                    The joystick hot path — Flutter → WebSocket → Server → MQTT → Device — executes with zero database operations and zero awaits. Telemetry flows in reverse: Device → MQTT → Server → SSE broadcast (sync) → DB insert (async, not awaited).
-                </p>
-            </Subsection>
         </SpecPanel>
     );
 }
@@ -234,22 +215,28 @@ void setupMQTT() {
             </Subsection>
 
             <Subsection title="Telemetry Payload">
-                <p>Publish telemetry to <code>spedi/vehicle/status</code> at a regular interval (recommended: 2 seconds). All fields are optional — the server stores the full raw payload verbatim and extracts known fields into the shadow via a configurable field map.</p>
+                <p>Publish telemetry to <code>spedi/vehicle/status</code> at a regular interval (recommended: 2 seconds). The server is a <strong className="text-foreground">tolerant reader</strong>, but the dashboard&apos;s map visualization requires a specific set of locked fields. Other fields can be freely named and included as needed.</p>
                 <CodeBlock lang="json" title="Example Telemetry Payload">{`{
+  // Required/Locked fields for Map Visualization
   "lat": 13.7563,
   "lng": 100.5018,
-  "satellites": 8,
+  "satellite_count": 8,
+  "waypoint_index": 0,
   "mode": "manual",
+  
+  // Flexible/Custom fields (examples)
   "obstacle_left": 45,
   "obstacle_right": 120,
   "smart_move_active": false,
   "autopilot_active": false,
-  "waypoint_index": 0,
   "bearing": 127.5,
   "speed": 2.3
 }`}</CodeBlock>
                 <p className="mt-2">
-                    The server is a <strong className="text-foreground">tolerant reader</strong>. Unknown fields are accepted and stored in the database, never rejected. When the hardware architect adds, renames, or removes fields, no backend code change is required — the superuser updates the <code>telemetry_field_map</code> config entry to control which fields populate the in-memory shadow.
+                    <strong className="text-foreground">Locked Fields:</strong> <code>lat</code>, <code>lng</code>, <code>satellite_count</code>, <code>waypoint_index</code>, and <code>mode</code> are strictly required by the dashboard algorithms for rendering the live map and trail.
+                </p>
+                <p className="mt-2">
+                    <strong className="text-foreground">Flexible Fields:</strong> Altitude, speed, heading, obstacle distances, etc., can be named however you want (e.g., <code>obs_l</code> vs <code>obstacle_left</code>). The superuser maps these custom fields into the in-memory shadow via the <code>telemetry_field_map</code> configuration.
                 </p>
             </Subsection>
 
@@ -563,7 +550,7 @@ function ReferenceTab({ token }: { token: string | null }) {
                     url: `${getApiUrl()}/openapi.json`,
                     theme: 'kepler',
                     layout: 'classic',
-                    hideModels: false,
+                    hideModels: true,
                     hideDownloadButton: true,
                     forceDarkModeState: 'dark',
                     searchHotKey: 'k',

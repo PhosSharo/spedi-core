@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = configRoutes;
 const config_service_1 = require("../services/config.service");
+const mqtt_service_1 = require("../services/mqtt.service");
 const ErrorResponse = {
     type: 'object',
     properties: {
@@ -11,12 +12,12 @@ const ErrorResponse = {
 const ConfigEntry = {
     type: 'object',
     properties: {
-        id: { type: 'number' },
-        key: { type: 'string' },
-        value: { type: 'string' },
-        description: { type: 'string', nullable: true },
-        updated_at: { type: 'string', format: 'date-time' },
-        updated_by: { type: 'string', format: 'uuid', nullable: true },
+        id: { type: 'number', example: 1 },
+        key: { type: 'string', example: 'telemetry_interval_ms' },
+        value: { type: 'string', example: '1000' },
+        description: { type: 'string', nullable: true, example: 'Frequency of telemetry updates from the device' },
+        updated_at: { type: 'string', format: 'date-time', example: '2024-03-20T14:30:00.000Z' },
+        updated_by: { type: 'string', format: 'uuid', nullable: true, example: 'd3b07384-d990-4e92-a034-927395c966f3' },
     },
 };
 async function configRoutes(fastify) {
@@ -65,12 +66,18 @@ async function configRoutes(fastify) {
                             type: 'object',
                             required: ['key', 'value'],
                             properties: {
+                                original_key: { type: 'string' },
                                 key: { type: 'string' },
                                 value: { type: 'string' },
                             },
                         },
                     },
                 },
+                example: {
+                    updates: [
+                        { key: "telemetry_interval_ms", value: "1000" }
+                    ]
+                }
             },
             response: {
                 200: {
@@ -95,7 +102,10 @@ async function configRoutes(fastify) {
             return reply.status(400).send({ error: 'Invalid payload: updates must be an array' });
         }
         try {
-            await config_service_1.configService.update(updates, user.id);
+            const result = await config_service_1.configService.update(updates, user.id);
+            if (result.mqttNeedsReload) {
+                mqtt_service_1.mqttService.reload().catch(err => request.log.error(err, 'Failed to reload MQTT service'));
+            }
             return { success: true, reloaded: true };
         }
         catch (err) {

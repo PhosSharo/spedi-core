@@ -14,17 +14,19 @@ const devices_1 = __importDefault(require("./routes/devices"));
 const auth_plugin_1 = __importDefault(require("./plugins/auth.plugin"));
 const supabase_js_1 = require("@supabase/supabase-js");
 const fastify = (0, fastify_1.default)({
-    logger: true
+    logger: true,
+    ajv: {
+        customOptions: {
+            strict: false
+        }
+    }
 });
-// CORS — allow the Vercel frontend and local dev
+// CORS — allow all origins (reflects requester) for Flutter Web and development
 fastify.register(cors_1.default, {
-    origin: [
-        'http://localhost:3000',
-        'https://spedi-core.vercel.app',
-    ],
+    origin: true,
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+    methods: 'GET,POST,PUT,DELETE,PATCH,OPTIONS',
+    allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
     strictPreflight: false,
 });
 // Configure Supabase Client
@@ -41,12 +43,41 @@ const device_service_1 = require("./services/device.service");
 const session_service_1 = require("./services/session.service");
 const telemetry_service_1 = require("./services/telemetry.service");
 const sse_service_1 = require("./services/sse.service");
+const camera_service_1 = require("./services/camera.service");
+const log_service_1 = require("./services/log.service");
 const realtime_1 = __importDefault(require("./routes/realtime"));
 const control_1 = __importDefault(require("./routes/control"));
 const session_1 = __importDefault(require("./routes/session"));
 const routes_1 = __importDefault(require("./routes/routes"));
 const telemetry_1 = __importDefault(require("./routes/telemetry"));
+const debug_1 = __importDefault(require("./routes/debug"));
+const users_1 = __importDefault(require("./routes/users"));
+const camera_1 = __importDefault(require("./routes/camera"));
 const route_service_1 = require("./services/route.service");
+// Intercept application/json to safely handle empty bodies natively without crashing Fastify.
+fastify.removeContentTypeParser('application/json');
+fastify.addContentTypeParser('application/json', function (req, payload, done) {
+    let rawBody = '';
+    payload.on('data', chunk => {
+        rawBody += chunk.toString();
+    });
+    payload.on('end', () => {
+        if (!rawBody || rawBody.trim() === '') {
+            done(null, {}); // Tolerate empty body as empty object
+            return;
+        }
+        try {
+            const json = JSON.parse(rawBody);
+            done(null, json);
+        }
+        catch (err) {
+            err.statusCode = 400;
+            err.code = 'FST_ERR_CTP_INVALID_JSON_BODY';
+            done(err, undefined);
+        }
+    });
+    payload.on('error', err => done(err, undefined));
+});
 // Register plugins
 fastify.register(auth_plugin_1.default);
 fastify.register(websocket_1.default);
@@ -55,9 +86,27 @@ const swagger_1 = __importDefault(require("@fastify/swagger"));
 fastify.register(swagger_1.default, {
     openapi: {
         info: {
-            title: 'SPEDI Platform API',
-            description: 'Backend API for the SPEDI autonomous boat orchestration platform.',
-            version: '1.0.0',
+            title: 'SPEDI Platform API //',
+            description: `
+IoT Orchestration Backend for the SPEDI autonomous vehicle system.
+
+### Architecture Overview
+SPEDI mediates between physical ESP32 devices, a Flutter mobile controller, and a Next.js admin dashboard.
+- **REST API**: Resource management (Devices, Users, Routes).
+- **SSC Stream**: Unidirectional live telemetry and system events (GET /events).
+- **WebSocket**: Bidirectional joystick hot-path (GET /control).
+
+### Authentication & RBAC
+- **Superuser**: Full administrative control. Account provisioning is restricted to direct DB/Seed.
+- **Standard User**: Restricted to Documentation access only.
+- **Service Role**: Required for administrative User Management operations.
+
+### Data Model
+The system follows the **Device Shadow** pattern (Desired vs reported state).
+- **Desired**: Commands sent from the platform to the device.
+- **Reported**: Real-time state ingested from the device via MQTT.
+`,
+            version: '1.0.4',
         },
         components: {
             securitySchemes: {
@@ -70,13 +119,17 @@ fastify.register(swagger_1.default, {
             },
         },
         tags: [
-            { name: 'Auth', description: 'Authentication endpoints' },
-            { name: 'Devices', description: 'Device management and shadow state' },
-            { name: 'Sessions', description: 'Control session mutex' },
-            { name: 'Routes', description: 'Autonomous route management' },
-            { name: 'Config', description: 'System configuration (superuser)' },
-            { name: 'Realtime', description: 'SSE and WebSocket streams' },
-            { name: 'System', description: 'Health and diagnostics' },
+            { name: 'Auth', description: 'Supabase-integrated authentication. Handles JWT issuance and logout.' },
+            { name: 'Devices', description: 'Device registry and Shadow State (Desired/Reported) management.' },
+            { name: 'Telemetry', description: 'Historical telemetry logs and live stream ingestion details. Note: Use /events for live updates.' },
+            { name: 'Users', description: 'CRUD for standard accounts. Security Policy: Superusers cannot be created/promoted via API.' },
+            { name: 'Sessions', description: 'Device control mutex. Only one user can claim ownership of a device at a time.' },
+            { name: 'Routes', description: 'Autonomous mission planning. Requires multiple waypoints and device availability.' },
+            { name: 'Config', description: 'Runtime parameters. Updates trigger immediate MQTT re-connection and system hot-reload.' },
+            { name: 'Realtime', description: 'SSE (Server-Sent Events) and WebSocket endpoints. Require ?token=JWT query parameters.' },
+            { name: 'Debug', description: 'Developer tools. Includes the Telemetry Mock Injector for platform simulation.' },
+            { name: 'System', description: 'Platform health and diagnostics.' },
+            { name: 'Camera', description: 'Latest snapshot from the active ESP32-CAM.' },
         ],
     },
 });
@@ -94,6 +147,9 @@ fastify.register(control_1.default);
 fastify.register(session_1.default);
 fastify.register(routes_1.default);
 fastify.register(telemetry_1.default);
+fastify.register(debug_1.default);
+fastify.register(users_1.default);
+fastify.register(camera_1.default);
 const start = async () => {
     try {
         // 1. ConfigService loads from DB
@@ -120,8 +176,9 @@ const start = async () => {
         telemetry_service_1.telemetryService.onRoute((deviceId, reported) => {
             route_service_1.routeService.onTelemetry(deviceId, reported);
         });
-        // Wire SSE to MQTT device connection events
+        // Wire SSE and Logger to MQTT device connection events
         mqtt_service_1.mqttService.on('device_online', (deviceId) => {
+            log_service_1.logService.info('arduino', 'connection', 'Device (Arduino) reconnected to MQTT broker');
             sse_service_1.sseService.broadcast({
                 type: 'device_online',
                 deviceId,
@@ -129,6 +186,7 @@ const start = async () => {
             });
         });
         mqtt_service_1.mqttService.on('device_offline', (deviceId) => {
+            log_service_1.logService.warn('arduino', 'connection', 'Device (Arduino) disconnected from MQTT broker');
             sse_service_1.sseService.broadcast({
                 type: 'device_offline',
                 deviceId,
@@ -145,10 +203,17 @@ const start = async () => {
         });
         // 6. MQTTClient connects (after config is available)
         fastify.log.info('Connecting to MQTT broker...');
-        mqtt_service_1.mqttService.onMessage((topic, payload) => telemetry_service_1.telemetryService.ingest(topic, payload));
-        await mqtt_service_1.mqttService.connect();
-        fastify.log.info('MQTT broker connected.');
-        // 6. HTTP server starts accepting
+        mqtt_service_1.mqttService.onMessage((topic, payload) => {
+            if (topic === mqtt_service_1.mqttService.topicCamera) {
+                camera_service_1.cameraService.ingest(topic, payload);
+            }
+            else {
+                telemetry_service_1.telemetryService.ingest(topic, payload);
+            }
+        });
+        mqtt_service_1.mqttService.connect().catch(e => fastify.log.warn('MQTT connection failed on startup, will retry.'));
+        fastify.log.info('MQTT broker connection initiated.');
+        // 7. HTTP server starts accepting
         const port = Number(process.env.PORT) || 3000;
         await fastify.listen({ port, host: '0.0.0.0' });
         console.log(`Server listening on port ${port}`);

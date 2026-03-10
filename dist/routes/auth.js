@@ -29,9 +29,13 @@ async function authRoutes(fastify) {
                 type: 'object',
                 required: ['email', 'password'],
                 properties: {
-                    email: { type: 'string', format: 'email' },
-                    password: { type: 'string', minLength: 1 },
+                    email: { type: 'string', format: 'email', examples: ['dev@spedi.io'] },
+                    password: { type: 'string', minLength: 1, examples: ['password'] },
                 },
+                examples: [{
+                        email: 'dev@spedi.io',
+                        password: 'password'
+                    }]
             },
             response: {
                 200: {

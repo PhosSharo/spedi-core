@@ -13,8 +13,7 @@ class SseService {
         reply.raw.writeHead(200, {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': '*' // or specific origin if preferred
+            'Connection': 'keep-alive'
         });
         // Send an initial heartbeat to confirm connection
         reply.raw.write(':\n\n');

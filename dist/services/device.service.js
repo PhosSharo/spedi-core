@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deviceService = exports.DeviceService = void 0;
 require("dotenv/config");
 const supabase_js_1 = require("@supabase/supabase-js");
+const config_service_1 = require("./config.service");
+const log_service_1 = require("./log.service");
 class DeviceService {
     supabase;
     /**
@@ -43,37 +45,43 @@ class DeviceService {
                     steering: 0,
                     route: null,
                 },
-                reported: {
-                    mode: null,
-                    lat: null,
-                    lng: null,
-                    obstacle_left: null,
-                    obstacle_right: null,
-                    smart_move_active: null,
-                    waypoint_index: null,
-                },
+                reported: {},
             };
             this.shadows.set(deviceId, shadow);
         }
         return shadow;
     }
+    /**
+     * Update the reported side of the shadow from an incoming telemetry payload.
+     *
+     * If `telemetry_field_map` is configured, it controls which device keys
+     * are extracted and what shadow keys they map to. Format:
+     *   { "device_payload_key": "shadow_key", ... }
+     *
+     * If no mapping is configured, ALL payload keys merge directly into
+     * the shadow (full passthrough — tolerant reader default).
+     */
     updateReported(deviceId, payload) {
         const shadow = this.getOrCreateShadow(deviceId);
-        // Tolerant reader: extract only known fields into typed properties, ignore the rest.
-        if (payload.mode !== undefined)
-            shadow.reported.mode = String(payload.mode);
-        if (payload.lat !== undefined)
-            shadow.reported.lat = Number(payload.lat);
-        if (payload.lng !== undefined)
-            shadow.reported.lng = Number(payload.lng);
-        if (payload.obstacle_left !== undefined)
-            shadow.reported.obstacle_left = Number(payload.obstacle_left);
-        if (payload.obstacle_right !== undefined)
-            shadow.reported.obstacle_right = Number(payload.obstacle_right);
-        if (payload.smart_move_active !== undefined)
-            shadow.reported.smart_move_active = Boolean(payload.smart_move_active);
-        if (payload.waypoint_index !== undefined)
-            shadow.reported.waypoint_index = Number(payload.waypoint_index);
+        const mappingRaw = config_service_1.configService.get('telemetry_field_map');
+        if (mappingRaw) {
+            try {
+                const map = JSON.parse(mappingRaw);
+                for (const [deviceKey, shadowKey] of Object.entries(map)) {
+                    if (payload[deviceKey] !== undefined) {
+                        shadow.reported[shadowKey] = payload[deviceKey];
+                    }
+                }
+            }
+            catch {
+                // Malformed mapping — fall back to passthrough
+                Object.assign(shadow.reported, payload);
+            }
+        }
+        else {
+            // No mapping configured — passthrough all keys
+            Object.assign(shadow.reported, payload);
+        }
     }
     /**
      * Update desired state (partial merge).
@@ -108,6 +116,7 @@ class DeviceService {
         if (this.mqtt) {
             this.mqtt.publishJoystick(payload);
         }
+        log_service_1.logService.info('mobile', 'route', `Joystick command dispatched: THR=${payload.throttle} STR=${payload.steering}`, payload);
     }
     /**
      * Publish a route command to the device.
@@ -117,9 +126,11 @@ class DeviceService {
     publishRoute(deviceId, action, waypoints) {
         if (action === 'start' && waypoints) {
             this.setDesired(deviceId, { mode: 'auto', route: waypoints });
+            log_service_1.logService.info('mobile', 'route', `Autonomous route dispatched (${waypoints.length} wpts)`);
         }
         else if (action === 'stop') {
             this.resetDesired(deviceId);
+            log_service_1.logService.info('mobile', 'route', 'Route execution aborted by user');
         }
         if (this.mqtt) {
             this.mqtt.publishRoute(action, waypoints);
@@ -200,6 +211,27 @@ class DeviceService {
             .single();
         if (error) {
             console.error('Failed to register device:', error);
+            throw error;
+        }
+        return data;
+    }
+    /**
+     * Updates an existing device.
+     */
+    async updateDevice(id, name, mqttClientId) {
+        const payload = {};
+        if (name !== undefined)
+            payload.name = name;
+        if (mqttClientId !== undefined)
+            payload.mqtt_client_id = mqttClientId;
+        const { data, error } = await this.supabase
+            .from('devices')
+            .update(payload)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) {
+            console.error(`Failed to update device ${id}:`, error);
             throw error;
         }
         return data;

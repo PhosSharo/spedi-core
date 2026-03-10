@@ -18,15 +18,15 @@ const WaypointSchema = {
 const RouteRecord = {
     type: 'object',
     properties: {
-        id: { type: 'string', format: 'uuid' },
-        device_id: { type: 'string', format: 'uuid' },
-        created_by: { type: 'string', format: 'uuid' },
-        name: { type: 'string' },
-        waypoints: { type: 'array', items: WaypointSchema },
-        status: { type: 'string', enum: ['draft', 'active', 'completed', 'aborted'] },
-        created_at: { type: 'string', format: 'date-time' },
-        dispatched_at: { type: 'string', format: 'date-time', nullable: true },
-        completed_at: { type: 'string', format: 'date-time', nullable: true },
+        id: { type: 'string', format: 'uuid', example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' },
+        device_id: { type: 'string', format: 'uuid', example: 'b0289f64-d3a9-467f-94a2-140682701416' },
+        created_by: { type: 'string', format: 'uuid', example: 'd3b07384-d990-4e92-a034-927395c966f3' },
+        name: { type: 'string', example: 'Riverside Patrol' },
+        waypoints: { type: 'array', items: WaypointSchema, example: [{ lat: 13.7563, lng: 100.5018 }, { lat: 13.7570, lng: 100.5025 }] },
+        status: { type: 'string', enum: ['draft', 'active', 'completed', 'aborted'], example: 'draft' },
+        created_at: { type: 'string', format: 'date-time', example: '2024-03-20T14:30:00.000Z' },
+        dispatched_at: { type: 'string', format: 'date-time', nullable: true, example: null },
+        completed_at: { type: 'string', format: 'date-time', nullable: true, example: null },
     },
 };
 const routeRoutes = async (fastify) => {
@@ -80,8 +80,8 @@ const routeRoutes = async (fastify) => {
                 type: 'object',
                 required: ['device_id', 'name', 'waypoints'],
                 properties: {
-                    device_id: { type: 'string' },
-                    name: { type: 'string', minLength: 1 },
+                    device_id: { type: 'string', example: '00000000-0000-0000-0000-000000000000' },
+                    name: { type: 'string', minLength: 1, example: 'Bangkok River Patrol' },
                     waypoints: {
                         type: 'array',
                         minItems: 2,
@@ -89,12 +89,26 @@ const routeRoutes = async (fastify) => {
                             type: 'object',
                             required: ['lat', 'lng'],
                             properties: {
-                                lat: { type: 'number' },
-                                lng: { type: 'number' },
+                                lat: { type: 'number', example: 13.7563 },
+                                lng: { type: 'number', example: 100.5018 },
                             },
                         },
+                        example: [
+                            { lat: 13.7563, lng: 100.5018 },
+                            { lat: 13.7570, lng: 100.5025 },
+                            { lat: 13.7580, lng: 100.5030 },
+                        ],
                     },
                 },
+                example: {
+                    device_id: '00000000-0000-0000-0000-000000000000',
+                    name: 'Bangkok River Patrol',
+                    waypoints: [
+                        { lat: 13.7563, lng: 100.5018 },
+                        { lat: 13.7570, lng: 100.5025 },
+                        { lat: 13.7580, lng: 100.5030 }
+                    ]
+                }
             },
             response: {
                 201: RouteRecord,
@@ -197,11 +211,15 @@ const routeRoutes = async (fastify) => {
         schema: {
             tags: ['Routes'],
             summary: 'Dispatch a route',
-            description: 'Starts an autonomous route. Validates: route is draft/aborted, no active route on device, active session exists. Publishes waypoints to device via MQTT.',
+            description: 'Starts an autonomous route. Validates: route is draft/aborted, no active route on device, active session exists. Publishes waypoints to device via MQTT. Accepts empty bodies.',
             security: [{ BearerAuth: [] }],
             params: {
                 type: 'object',
                 properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            body: {
+                type: 'object',
+                additionalProperties: true, // explicitly permit empty `{}`
             },
             response: {
                 200: RouteRecord,
@@ -232,11 +250,15 @@ const routeRoutes = async (fastify) => {
         schema: {
             tags: ['Routes'],
             summary: 'Abort an active route',
-            description: 'Aborts an active route. Resets desired state to idle and publishes stop_route to the device.',
+            description: 'Aborts an active route. Resets desired state to idle and publishes stop_route to the device. Accepts empty bodies.',
             security: [{ BearerAuth: [] }],
             params: {
                 type: 'object',
                 properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            body: {
+                type: 'object',
+                additionalProperties: true, // explicitly permit empty `{}`
             },
             response: {
                 200: {

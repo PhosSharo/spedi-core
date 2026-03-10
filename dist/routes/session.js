@@ -33,8 +33,11 @@ const sessionRoutes = async (fastify) => {
                 type: 'object',
                 required: ['device_id'],
                 properties: {
-                    device_id: { type: 'string' },
+                    device_id: { type: 'string', example: '00000000-0000-0000-0000-000000000000' },
                 },
+                example: {
+                    device_id: '00000000-0000-0000-0000-000000000000'
+                }
             },
             response: {
                 200: ActiveSessionSchema,
@@ -90,8 +93,12 @@ const sessionRoutes = async (fastify) => {
         schema: {
             tags: ['Sessions'],
             summary: 'Close active session',
-            description: 'Closes the active session for the requesting user. Resets desired state to idle and publishes a stop command to the device.',
+            description: 'Closes the active session for the requesting user. Resets desired state to idle and publishes a stop command to the device. Accepts empty bodies.',
             security: [{ BearerAuth: [] }],
+            body: {
+                type: 'object',
+                additionalProperties: true, // explicitly permit empty `{}`
+            },
             response: {
                 200: {
                     type: 'object',

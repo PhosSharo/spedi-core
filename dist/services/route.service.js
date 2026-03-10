@@ -5,6 +5,7 @@ require("dotenv/config");
 const supabase_js_1 = require("@supabase/supabase-js");
 const device_service_1 = require("./device.service");
 const session_service_1 = require("./session.service");
+const log_service_1 = require("./log.service");
 class RouteService {
     supabase;
     /**
@@ -80,6 +81,7 @@ class RouteService {
             prevAutopilotActive: null,
         });
         console.log(`🗺️ RouteService: Dispatched route ${routeId} on device ${route.device_id}`);
+        log_service_1.logService.info('mobile', 'route', `Dispatched route ${route.name}`, { routeId, deviceId: route.device_id });
         return updated;
     }
     // ── Stop / Abort ─────────────────────────────────────────────
@@ -112,6 +114,7 @@ class RouteService {
         // Clear in-memory tracking
         this.activeRoutes.delete(route.device_id);
         console.log(`🗺️ RouteService: Aborted route ${routeId} on device ${route.device_id}`);
+        log_service_1.logService.warn('mobile', 'route', `Aborted route ${route.name}`, { routeId, deviceId: route.device_id });
     }
     // ── Telemetry completion detection ───────────────────────────
     /**
@@ -133,6 +136,7 @@ class RouteService {
         // Detect true → false transition
         if (prev === true && current === false) {
             console.log(`🗺️ RouteService: autopilot_active went false for device ${deviceId} — completing route ${tracked.routeId}`);
+            log_service_1.logService.info('system', 'route', `Autopilot deactivated on device — completing route`, { routeId: tracked.routeId, deviceId });
             const routeId = tracked.routeId;
             // Clear in-memory tracking first
             this.activeRoutes.delete(deviceId);

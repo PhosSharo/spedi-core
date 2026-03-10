@@ -7,6 +7,7 @@ exports.mqttService = exports.MqttService = void 0;
 const mqtt_1 = __importDefault(require("mqtt"));
 const events_1 = require("events");
 const config_service_1 = require("./config.service");
+const log_service_1 = require("./log.service");
 /**
  * MqttService — Infrastructure wrapper around MQTT.js.
  *
@@ -24,6 +25,7 @@ const KEY_BROKER_PORT = 'mqtt_broker_port';
 const KEY_TOPIC_JOYSTICK = 'mqtt_topic_joystick';
 const KEY_TOPIC_ROUTE = 'mqtt_topic_route';
 const KEY_TOPIC_STATUS = 'mqtt_topic_status';
+const KEY_TOPIC_CAMERA = 'mqtt_topic_camera';
 class MqttService extends events_1.EventEmitter {
     client = null;
     subscribeTopics = [];
@@ -36,6 +38,7 @@ class MqttService extends events_1.EventEmitter {
     topicJoystick = '';
     topicRoute = '';
     topicStatus = '';
+    topicCamera = '';
     /**
      * Connect to the MQTT broker.
      * Must be called AFTER configService.load() has completed.
@@ -51,8 +54,9 @@ class MqttService extends events_1.EventEmitter {
         this.topicJoystick = config_service_1.configService.get(KEY_TOPIC_JOYSTICK) || 'spedi/vehicle/joystick';
         this.topicRoute = config_service_1.configService.get(KEY_TOPIC_ROUTE) || 'spedi/vehicle/route';
         this.topicStatus = config_service_1.configService.get(KEY_TOPIC_STATUS) || 'spedi/vehicle/status';
+        this.topicCamera = config_service_1.configService.get(KEY_TOPIC_CAMERA) || 'spedi/vehicle/camera';
         // Topics the server subscribes to (read-only per ACL)
-        this.subscribeTopics = [this.topicStatus];
+        this.subscribeTopics = [this.topicStatus, this.topicCamera];
         // Connection credentials from environment (connection-level secrets)
         const username = process.env.MQTT_USERNAME || 'server';
         const password = process.env.MQTT_PASSWORD || '';
@@ -72,6 +76,7 @@ class MqttService extends events_1.EventEmitter {
             this.client = mqtt_1.default.connect(brokerUrl, options);
             this.client.on('connect', () => {
                 this.reconnectAttempts = 0;
+                log_service_1.logService.info('system', 'connection', `Connected to MQTT broker: ${host}:${port}`);
                 console.log(`✅ MqttService: Connected to ${brokerUrl}`);
                 this.subscribeAll();
                 this.emit('device_online');
@@ -83,22 +88,24 @@ class MqttService extends events_1.EventEmitter {
                 }
             });
             this.client.on('close', () => {
+                log_service_1.logService.warn('system', 'connection', 'MQTT Connection closed. Will attempt reconnect.');
                 console.warn('⚠️ MqttService: Connection closed.');
                 this.emit('device_offline');
                 this.scheduleReconnect(brokerUrl, options);
             });
             this.client.on('error', (err) => {
+                log_service_1.logService.error('system', 'connection', 'MQTT Connection error', { error: err.message });
                 console.error('❌ MqttService: Connection error:', err.message);
                 // Don't reject after initial connect succeeds
             });
             // Timeout for first connect
             setTimeout(() => {
                 if (!this.client?.connected) {
-                    const msg = `MqttService: Initial connection to ${brokerUrl} timed out.`;
-                    console.error(`❌ ${msg}`);
-                    reject(new Error(msg));
+                    const msg = `MqttService: Initial connection to ${brokerUrl} timed out. Proceeding anyway.`;
+                    console.warn(`⚠️ ${msg}`);
+                    resolve(); // Resolve anyway so the server can start without MQTT
                 }
-            }, 15000);
+            }, 3000);
         });
     }
     /**

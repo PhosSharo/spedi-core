@@ -4,6 +4,8 @@ exports.telemetryService = exports.TelemetryService = void 0;
 require("dotenv/config");
 const supabase_js_1 = require("@supabase/supabase-js");
 const device_service_1 = require("./device.service");
+const config_service_1 = require("./config.service");
+const log_service_1 = require("./log.service");
 /**
  * TelemetryService — Ingestion pipeline for device MQTT payloads.
  *
@@ -53,12 +55,20 @@ class TelemetryService {
      * @param payload The raw Buffer from MQTT
      */
     ingest(topic, payload) {
+        // ── Size guard ───────────────────────────────────────────
+        const maxBytes = parseInt(config_service_1.configService.get('telemetry_max_payload_bytes') || '4096', 10);
+        if (payload.length > maxBytes) {
+            log_service_1.logService.warn('arduino', 'telemetry', `Payload too large, dropping (${payload.length} bytes)`, { topic, limit: maxBytes });
+            console.warn(`TelemetryService: Payload too large (${payload.length} bytes > ${maxBytes} limit), dropping.`, { topic });
+            return;
+        }
         // ── Parse ────────────────────────────────────────────────
         let parsed;
         try {
             parsed = JSON.parse(payload.toString());
         }
         catch {
+            log_service_1.logService.error('arduino', 'telemetry', 'Received non-JSON payload, dropping', { topic });
             console.warn('TelemetryService: Received non-JSON payload, dropping.', {
                 topic,
                 raw: payload.toString().substring(0, 200),
@@ -70,9 +80,11 @@ class TelemetryService {
         // or we derive it from the topic structure.
         const deviceId = this.resolveDeviceId(topic, parsed);
         if (!deviceId) {
+            log_service_1.logService.warn('arduino', 'telemetry', 'Could not resolve device ID from telemetry payload', { topic });
             console.warn('TelemetryService: Could not resolve device ID, dropping.', { topic });
             return;
         }
+        log_service_1.logService.info('arduino', 'telemetry', 'Ingested device telemetry', { deviceId });
         // ── Synchronous pipeline (in-memory, zero DB) ────────────
         // 1. Update reported state in DeviceService shadow
         device_service_1.deviceService.updateReported(deviceId, parsed);

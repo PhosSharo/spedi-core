@@ -124,9 +124,13 @@ async function deviceRoutes(fastify) {
                 type: 'object',
                 required: ['name', 'mqtt_client_id'],
                 properties: {
-                    name: { type: 'string' },
-                    mqtt_client_id: { type: 'string' },
+                    name: { type: 'string', example: 'test-boat-01' },
+                    mqtt_client_id: { type: 'string', example: 'test-client-01' },
                 },
+                example: {
+                    name: 'test-boat-01',
+                    mqtt_client_id: 'test-client-01'
+                }
             },
             response: {
                 201: DeviceRecord,
@@ -191,6 +195,75 @@ async function deviceRoutes(fastify) {
                 }
                 : null,
         };
+    });
+    /**
+     * OPTIONS /devices/:id
+     * Explicit handler to fix Fastify eating CORS headers on parametric DELETE routes
+     */
+    fastify.options('/devices/:id', async (request, reply) => {
+        return reply
+            .header('Access-Control-Allow-Origin', 'https://spedi-core.vercel.app')
+            .header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+            .header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization')
+            .header('Access-Control-Allow-Credentials', 'true')
+            .status(204)
+            .send();
+    });
+    /**
+     * PUT /devices/:id
+     */
+    fastify.put('/devices/:id', {
+        onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Devices'],
+            summary: 'Update device',
+            description: 'Updates a device\'s name and/or MQTT client ID. Superuser only.',
+            security: [{ BearerAuth: [] }],
+            params: {
+                type: 'object',
+                properties: { id: { type: 'string', format: 'uuid' } },
+            },
+            body: {
+                type: 'object',
+                properties: {
+                    name: { type: 'string', minLength: 1 },
+                    mqtt_client_id: { type: 'string', minLength: 1 },
+                },
+                example: {
+                    name: 'Updated Boat Name',
+                    mqtt_client_id: 'updated-client-id'
+                }
+            },
+            response: {
+                200: DeviceRecord,
+                400: ErrorResponse,
+                403: ErrorResponse,
+                404: ErrorResponse,
+                500: ErrorResponse,
+            },
+        },
+    }, async (request, reply) => {
+        const user = request.user;
+        if (!user || !user.is_superuser) {
+            return reply.status(403).send({ error: 'Forbidden: Superuser access required' });
+        }
+        const { id } = request.params;
+        const { name, mqtt_client_id } = request.body;
+        if (!name && !mqtt_client_id) {
+            return reply.status(400).send({ error: 'At least one field (name or mqtt_client_id) must be provided to update' });
+        }
+        const device = await device_service_1.deviceService.getDeviceById(id);
+        if (!device) {
+            return reply.status(404).send({ error: 'Device not found' });
+        }
+        try {
+            const updated = await device_service_1.deviceService.updateDevice(id, name, mqtt_client_id);
+            return updated;
+        }
+        catch (err) {
+            request.log.error(err);
+            return reply.status(500).send({ error: 'Failed to update device' });
+        }
     });
     /**
      * DELETE /devices/:id

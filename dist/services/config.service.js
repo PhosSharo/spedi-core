@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.configService = exports.ConfigService = void 0;
 require("dotenv/config");
 const supabase_js_1 = require("@supabase/supabase-js");
+const log_service_1 = require("./log.service");
 class ConfigService {
     supabase;
     configMap = new Map();
@@ -39,7 +40,17 @@ class ConfigService {
      * Note: Hot-reload notifications are deferred to Phase 8.
      */
     async update(updates, userId) {
-        for (const { key, value } of updates) {
+        let mqttNeedsReload = false;
+        for (const { original_key, key, value } of updates) {
+            // Drop old key if renaming
+            if (original_key && original_key !== key) {
+                await this.supabase.from('config').delete().eq('key', original_key);
+                this.configMap.delete(original_key);
+                if (original_key.startsWith('mqtt_'))
+                    mqttNeedsReload = true;
+            }
+            if (key.startsWith('mqtt_'))
+                mqttNeedsReload = true;
             const payload = {
                 key,
                 value,
@@ -62,6 +73,8 @@ class ConfigService {
             }
         }
         console.log(`✅ ConfigService: Updated ${updates.length} keys by user ${userId}.`);
+        log_service_1.logService.info('system', 'config', `Configuration updated (${updates.length} keys)`, { keys: updates.map(u => u.key) });
+        return { mqttNeedsReload };
     }
     /**
      * Returns all configuration rows as an array.

@@ -628,3 +628,25 @@ Added startup validation (`ensureInitialized()`) and error wrapping in `UserServ
 ### ⚠️ Watch Out
 The two Supabase keys look identical in format (both are JWTs). The only way to distinguish them is by checking the `role` claim inside the token payload (`anon` vs `service_role`).
 
+---
+ 
+ ## Railway Nixpacks Caching (Node.js Monorepos) â€” 2026-03-11
+ 
+ ### â Œ What Failed
+ Backend changes (v1.0.6) pushed to Railway were not being reflected in the live environment, even after successful builds and redeploys. Probing the container showed `dist/server.js` was stuck on v1.0.4 while `src/server.ts` was v1.0.6.
+ 
+ ### ðŸ”  Why It Failed
+ In repositories containing both Next.js and a Fastify backend, Nixpacks (Railway's default builder) auto-detects Next.js and prioritizes its build pipeline. It aggressively caches the `dist/` folder across builds. Because `npm run build` by default only ran `next build`, the backend compilation (`tsc`) was either skipped or its output was overwritten by stale cached layers.
+ 
+ ### âœ… Fix / Workaround
+ 1. **Abandon Nixpacks**: Move to a custom **Dockerfile** for 100% build determinism.
+ 2. **Next.js Standalone**: Set `output: 'standalone'` in `next.config.mjs` to create a minimal production bundle.
+ 3. **Combined Build**: Update `package.json` so `build` runs both `next build` and `tsc`.
+ 4. **Entrypoint Script**: Create a `start.js` that spawns both the Next.js standalone server and the Fastify server concurrently using `child_process.spawn`.
+ 5. **Docker Config**: Set `builder: "DOCKERFILE"` in `railway.json`.
+ 
+ ### âš ï¸  Watch Out
+ - Standalone Next.js needs `HOSTNAME: '0.0.0.0'` to be reachable inside a container.
+ - Custom Dockerfiles bypass Railway's "Magic" but require manual port management if you need to expose multiple services (though typically one public port is proxied).
+ 
+ ---

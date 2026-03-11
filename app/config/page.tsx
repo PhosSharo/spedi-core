@@ -27,6 +27,8 @@ const FALLBACK_ENDPOINTS: SystemEndpoint[] = [
     { label: 'WebSocket Control', value: 'wss://spedi-core-production.up.railway.app/control?token=<JWT>' },
     { label: 'MQTT Public Proxy', value: 'centerbeam.proxy.rlwy.net : 14546' },
     { label: 'MQTT Internal (Railway)', value: 'mosquitto.railway.internal : 1883' },
+    { label: 'MQTT Device Creds', value: 'device : spedi2026' },
+    { label: 'MQTT Server Creds', value: 'server : spedi2026' },
 ];
 
 const FALLBACK_IMMUTABLE_KEYS = ['mqtt_broker_host', 'mqtt_broker_port'];

@@ -43,6 +43,8 @@ function buildSystemEndpoints(): SystemEndpoint[] {
         { label: 'WebSocket Control', value: `${wsBase}/control?token=<JWT>` },
         { label: 'MQTT Public Proxy', value: `${mqttPublicHost} : ${mqttPublicPort}` },
         { label: 'MQTT Internal (Railway)', value: `${mqttInternalHost}.railway.internal : ${mqttInternalPort}` },
+        { label: 'MQTT Device Creds', value: 'device : spedi2026' },
+        { label: 'MQTT Server Creds', value: 'server : spedi2026' },
     ];
 }
 
@@ -106,8 +108,22 @@ export default async function configRoutes(fastify: FastifyInstance) {
         if (!user || !user.is_superuser) {
             return reply.status(403).send({ error: 'Forbidden: Superuser access required' });
         }
+        const config = configService.getAll();
+        
+        // Ensure camera channel is visible in the list even if not in DB yet
+        if (!config.find(c => c.key === 'mqtt_topic_camera')) {
+            config.push({
+                id: -1,
+                key: 'mqtt_topic_camera',
+                value: 'spedi/vehicle/camera',
+                description: 'MQTT topic for camera stream (read/write)',
+                updated_at: new Date().toISOString(),
+                updated_by: null
+            });
+        }
+
         return {
-            config: configService.getAll(),
+            config,
             immutableKeys: IMMUTABLE_KEYS,
             endpoints: getSystemEndpoints(),
         };

@@ -118,22 +118,28 @@ fastify.register(swagger, {
             { name: 'Camera', description: 'Latest ESP32-CAM snapshot retrieval.' },
         ],
         servers: [],
-    },
-    transformObject({ openapiObject }: any) {
-        if (openapiObject && openapiObject.paths) {
-            for (const path in openapiObject.paths) {
-                if (openapiObject.paths[path].options) {
-                    delete openapiObject.paths[path].options;
-                }
-            }
-        }
-        return openapiObject;
     }
 });
 
 // Expose spec at GET /openapi.json
 fastify.get('/openapi.json', { schema: { hide: true } }, async () => {
-    return fastify.swagger();
+    const spec = fastify.swagger() as any;
+    
+    // Strip CORS OPTIONS routes generated automatically
+    if (spec && spec.paths) {
+        for (const path in spec.paths) {
+            if (spec.paths[path].options) {
+                delete spec.paths[path].options;
+            }
+        }
+    }
+    
+    // Force empty servers block to prevent Scalar fallback
+    if (spec) {
+        spec.servers = [];
+    }
+
+    return spec;
 });
 
 // Broadcast all unhandled or API errors to the dashboard

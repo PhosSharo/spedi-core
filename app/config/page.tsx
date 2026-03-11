@@ -164,10 +164,10 @@ export default function ConfigManager() {
 
             {/* ── System Endpoints (Immutable) ────────────────────────────── */}
             <div className="rounded-sm border border-border bg-background">
-                <div className="px-4 py-3 border-b border-border flex items-center gap-2 bg-muted/30">
-                    <RiServerLine size={14} className="text-muted-foreground" />
-                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest font-sans">System Endpoints</span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-sans ml-1">// Read-Only</span>
+                <div className="px-4 py-3 border-b border-border flex items-center justify-start gap-2 bg-muted/30 w-full">
+                    <RiServerLine size={14} className="text-muted-foreground mr-1" />
+                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest font-sans text-left">System Endpoints</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-sans ml-1 text-left">// Read-Only</span>
                 </div>
                 <div className="divide-y divide-border/50">
                     {systemEndpoints.map((ep) => (

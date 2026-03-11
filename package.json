@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "dev:backend": "cross-env PORT=3001 nodemon --watch \"src/**/*.ts\" --exec \"ts-node src/server.ts\"",
-    "build": "next build",
+    "build:frontend": "next build",
     "build:backend": "tsc -p tsconfig.build.json",
+    "build": "npm run build:frontend && npm run build:backend",
     "start": "next start",
     "start:backend": "node dist/server.js",
     "lint": "next lint",

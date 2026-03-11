@@ -32,6 +32,14 @@ class DeviceService {
     }
     // ── Shadow Operations (synchronous, in-memory) ──────────────
     /**
+     * Get all device IDs that currently have an active shadow in memory.
+     * Useful for flushing state to new dashboard clients, even for devices
+     * not persisted in the database (e.g. emulator 'default' device).
+     */
+    getActiveShadowDeviceIds() {
+        return Array.from(this.shadows.keys());
+    }
+    /**
      * Get or create the shadow for a device.
      * Lazily initializes with idle defaults on first access.
      */

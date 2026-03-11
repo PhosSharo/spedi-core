@@ -34,13 +34,14 @@ const realtimeRoutes = async (fastify) => {
         const connectionId = (0, crypto_1.randomUUID)();
         sse_service_1.sseService.addClient(connectionId, reply);
         try {
-            const devices = await device_service_1.deviceService.listDevices();
-            for (const device of devices) {
-                const state = device_service_1.deviceService.getState(device.id);
+            // Flush all active shadows (including emulator 'default')
+            const activeDeviceIds = device_service_1.deviceService.getActiveShadowDeviceIds();
+            for (const deviceId of activeDeviceIds) {
+                const state = device_service_1.deviceService.getState(deviceId);
                 if (Object.keys(state.reported).length > 0) {
                     sse_service_1.sseService.sendToClient(connectionId, {
                         type: 'telemetry',
-                        deviceId: device.id,
+                        deviceId: deviceId,
                         payload: state.reported
                     });
                 }

@@ -548,6 +548,7 @@ function ReferenceTab({ token }: { token: string | null }) {
             <ApiReferenceReact
                 configuration={{
                     url: `${getApiUrl()}/openapi.json?v=${Date.now()}`,
+                    servers: [],
                     theme: 'kepler',
                     layout: 'classic',
                     hideModels: true,

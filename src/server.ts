@@ -119,15 +119,15 @@ fastify.register(swagger, {
         ],
         servers: [],
     },
-    transformObject(swaggerObject: any) {
-        if (swaggerObject && swaggerObject.paths) {
-            for (const path in swaggerObject.paths) {
-                if (swaggerObject.paths[path].options) {
-                    delete swaggerObject.paths[path].options;
+    transformObject({ openapiObject }: any) {
+        if (openapiObject && openapiObject.paths) {
+            for (const path in openapiObject.paths) {
+                if (openapiObject.paths[path].options) {
+                    delete openapiObject.paths[path].options;
                 }
             }
         }
-        return swaggerObject;
+        return openapiObject;
     }
 });
 

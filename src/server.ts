@@ -92,7 +92,7 @@ fastify.register(swagger, {
         info: {
             title: 'SPEDI Platform API //',
             description: 'IoT orchestration backend for the SPEDI autonomous vehicle system. Refer to the Integration Guides tab for architecture, data flow, and client-specific documentation.',
-            version: '1.0.5',
+            version: '1.0.6',
         },
         components: {
             securitySchemes: {
@@ -126,17 +126,25 @@ fastify.get('/openapi.json', { schema: { hide: true } }, async () => {
     const spec = fastify.swagger() as any;
     
     if (spec && spec.paths) {
+        // Pass 1: Strip OPTIONS methods and trailing-slash duplicates
         for (const path in spec.paths) {
-            // Strip CORS OPTIONS routes generated automatically
             if (spec.paths[path].options) {
                 delete spec.paths[path].options;
             }
-            // Remove trailing-slash duplicates (e.g. /devices/ when /devices exists)
             if (path.endsWith('/') && path.length > 1) {
                 const canonical = path.slice(0, -1);
                 if (spec.paths[canonical]) {
                     delete spec.paths[path];
                 }
+            }
+        }
+        // Pass 2: Remove any path objects that have zero remaining HTTP methods
+        for (const path in spec.paths) {
+            const methods = Object.keys(spec.paths[path]);
+            // OpenAPI path items can have non-method keys like 'parameters', 'summary', etc.
+            const httpMethods = methods.filter(m => ['get','post','put','delete','patch','head','trace'].includes(m));
+            if (httpMethods.length === 0) {
+                delete spec.paths[path];
             }
         }
     }

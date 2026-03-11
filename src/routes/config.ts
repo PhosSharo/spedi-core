@@ -78,42 +78,14 @@ export default async function configRoutes(fastify: FastifyInstance) {
         schema: {
             tags: ['Config'],
             summary: 'Get all configuration entries',
-            description: 'Returns all system configuration key-value pairs. Superuser only.',
-            security: [{ BearerAuth: [] }],
-            response: {
-                200: {
-                    type: 'array',
-                    items: ConfigEntry,
-                },
-                403: ErrorResponse,
-            },
-        },
-    }, async (request: FastifyRequest, reply: FastifyReply) => {
-        const user = request.user;
-        if (!user || !user.is_superuser) {
-            return reply.status(403).send({ error: 'Forbidden: Superuser access required' });
-        }
-        return {
-            config: configService.getAll(),
-            immutableKeys: IMMUTABLE_KEYS,
-        };
-    });
-
-    /**
-     * GET /config/system
-     * Returns cached deployment-derived system endpoints.
-     */
-    fastify.get('/config/system', {
-        onRequest: [fastify.authenticate],
-        schema: {
-            tags: ['Config'],
-            summary: 'Get system endpoints',
-            description: 'Returns deployment-derived system endpoints (REST, SSE, WS, MQTT). These values are immutable and derive from environment variables. Superuser only.',
+            description: 'Returns all system configuration key-value pairs, immutable keys list, and deployment-derived system endpoints. Superuser only.',
             security: [{ BearerAuth: [] }],
             response: {
                 200: {
                     type: 'object',
                     properties: {
+                        config: { type: 'array', items: ConfigEntry },
+                        immutableKeys: { type: 'array', items: { type: 'string' } },
                         endpoints: {
                             type: 'array',
                             items: {
@@ -134,8 +106,14 @@ export default async function configRoutes(fastify: FastifyInstance) {
         if (!user || !user.is_superuser) {
             return reply.status(403).send({ error: 'Forbidden: Superuser access required' });
         }
-        return { endpoints: getSystemEndpoints() };
+        return {
+            config: configService.getAll(),
+            immutableKeys: IMMUTABLE_KEYS,
+            endpoints: getSystemEndpoints(),
+        };
     });
+
+
 
     /**
      * PUT /config

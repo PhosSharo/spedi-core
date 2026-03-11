@@ -18,52 +18,61 @@ interface SystemEndpoint {
     value: string;
 }
 
+// ── Hardcoded Fallback Defaults ───────────────────────────────────────
+// If the API call fails or the backend hasn't deployed yet,
+// these values keep the config page functional.
+const FALLBACK_ENDPOINTS: SystemEndpoint[] = [
+    { label: 'REST API Base', value: 'https://spedi-core-production.up.railway.app' },
+    { label: 'SSE Event Stream', value: 'https://spedi-core-production.up.railway.app/events?token=<JWT>' },
+    { label: 'WebSocket Control', value: 'wss://spedi-core-production.up.railway.app/control?token=<JWT>' },
+    { label: 'MQTT Public Proxy', value: 'centerbeam.proxy.rlwy.net : 14546' },
+    { label: 'MQTT Internal (Railway)', value: 'mosquitto.railway.internal : 1883' },
+];
+
+const FALLBACK_IMMUTABLE_KEYS = ['mqtt_broker_host', 'mqtt_broker_port'];
+
 export default function ConfigManager() {
     const [configData, setConfigData] = useState<ConfigRow[]>([]);
-    const [immutableKeys, setImmutableKeys] = useState<string[]>([]);
-    const [systemEndpoints, setSystemEndpoints] = useState<SystemEndpoint[]>([]);
+    const [immutableKeys, setImmutableKeys] = useState<string[]>(FALLBACK_IMMUTABLE_KEYS);
+    const [systemEndpoints, setSystemEndpoints] = useState<SystemEndpoint[]>(FALLBACK_ENDPOINTS);
     const [editingKey, setEditingKey] = useState<string | null>(null);
     const [editKeyString, setEditKeyString] = useState<string>('');
     const [editValue, setEditValue] = useState<string>('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    const [refreshingEndpoints, setRefreshingEndpoints] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const fetchConfig = useCallback(async () => {
+    const fetchAll = useCallback(async () => {
         try {
-            const resConfig = await apiFetch('/config');
-            if (!resConfig.ok) {
-                throw new Error('Failed to fetch config');
-            }
+            setRefreshing(true);
+            const res = await apiFetch('/config');
+            if (!res.ok) throw new Error('Failed to fetch config');
 
-            const data = await resConfig.json();
-            setConfigData(data.config || []);
-            setImmutableKeys(data.immutableKeys || []);
-        } catch (err) {
-            console.error('Failed to load config manager:', err);
-            setError('Failed to fetch configuration data.');
-        }
-    }, []);
-
-    const fetchSystemEndpoints = useCallback(async () => {
-        try {
-            setRefreshingEndpoints(true);
-            const res = await apiFetch('/config/system');
-            if (!res.ok) throw new Error('Failed to fetch system endpoints');
             const data = await res.json();
-            setSystemEndpoints(data.endpoints || []);
+
+            // Handle both old response shape (array) and new shape (object)
+            if (Array.isArray(data)) {
+                // Legacy: backend returns raw array
+                setConfigData(data);
+            } else {
+                setConfigData(data.config || []);
+                if (data.immutableKeys) setImmutableKeys(data.immutableKeys);
+                if (data.endpoints && data.endpoints.length > 0) {
+                    setSystemEndpoints(data.endpoints);
+                }
+            }
         } catch (err) {
-            console.error('Failed to load system endpoints:', err);
+            console.error('Failed to load config:', err);
+            setError('Failed to fetch configuration data. Showing cached defaults.');
         } finally {
-            setRefreshingEndpoints(false);
+            setRefreshing(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchConfig();
-        fetchSystemEndpoints();
-    }, [fetchConfig, fetchSystemEndpoints]);
+        fetchAll();
+    }, [fetchAll]);
 
     const handleEditStart = (row: ConfigRow) => {
         setEditingKey(row.key);
@@ -105,8 +114,8 @@ export default function ConfigManager() {
             setEditingKey(null);
             setSuccess('Configuration saved. The backend is reloading to apply changes; this may take a few seconds.');
 
-            // Auto-refresh system endpoints since config changed
-            fetchSystemEndpoints();
+            // Re-fetch to pick up refreshed system endpoints
+            fetchAll();
 
             // Auto-hide success message after 5 seconds
             setTimeout(() => {
@@ -129,6 +138,14 @@ export default function ConfigManager() {
                     <h1 className="text-lg font-bold tracking-widest uppercase font-sans text-foreground">System_Configuration //</h1>
                     <p className="text-[10px] text-muted-foreground mt-1 uppercase font-sans tracking-widest">Manage global system parameters and environmental settings.</p>
                 </div>
+                <button
+                    onClick={fetchAll}
+                    disabled={refreshing}
+                    className="p-1.5 text-muted-foreground hover:text-foreground rounded-sm transition-colors disabled:opacity-50 border border-border"
+                    title="Refresh All"
+                >
+                    <RiRefreshLine size={14} className={refreshing ? 'animate-spin' : ''} />
+                </button>
             </div>
 
             {error && (
@@ -147,35 +164,19 @@ export default function ConfigManager() {
 
             {/* ── System Endpoints (Immutable) ────────────────────────────── */}
             <div className="rounded-sm border border-border bg-background">
-                <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-muted/30">
-                    <div className="flex items-center gap-2">
-                        <RiServerLine size={14} className="text-muted-foreground" />
-                        <span className="text-[10px] font-bold text-foreground uppercase tracking-widest font-sans">System Endpoints</span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-sans ml-1">// Read-Only</span>
-                    </div>
-                    <button
-                        onClick={fetchSystemEndpoints}
-                        disabled={refreshingEndpoints}
-                        className="p-1 text-muted-foreground hover:text-foreground rounded-sm transition-colors disabled:opacity-50"
-                        title="Refresh Endpoints"
-                    >
-                        <RiRefreshLine size={14} className={refreshingEndpoints ? 'animate-spin' : ''} />
-                    </button>
+                <div className="px-4 py-3 border-b border-border flex items-center gap-2 bg-muted/30">
+                    <RiServerLine size={14} className="text-muted-foreground" />
+                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest font-sans">System Endpoints</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-sans ml-1">// Read-Only</span>
                 </div>
                 <div className="divide-y divide-border/50">
-                    {systemEndpoints.length === 0 ? (
-                        <div className="px-4 py-6 text-center text-muted-foreground uppercase tracking-widest font-sans text-[10px]">
-                            Loading system endpoints...
+                    {systemEndpoints.map((ep) => (
+                        <div key={ep.label} className="flex items-center justify-between px-4 py-2.5 group">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans w-48 flex-shrink-0">{ep.label}</span>
+                            <span className="text-[11px] font-mono text-foreground/80 text-right break-all select-all">{ep.value}</span>
+                            <RiLockLine size={12} className="text-muted-foreground/30 ml-3 flex-shrink-0" />
                         </div>
-                    ) : (
-                        systemEndpoints.map((ep) => (
-                            <div key={ep.label} className="flex items-center justify-between px-4 py-2.5 group">
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans w-48 flex-shrink-0">{ep.label}</span>
-                                <span className="text-[11px] font-mono text-foreground/80 text-right break-all select-all">{ep.value}</span>
-                                <RiLockLine size={12} className="text-muted-foreground/30 ml-3 flex-shrink-0" />
-                            </div>
-                        ))
-                    )}
+                    ))}
                 </div>
             </div>
 
@@ -196,7 +197,7 @@ export default function ConfigManager() {
                             {configData.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground uppercase tracking-widest font-sans text-[10px]">
-                                        No configuration keys found.
+                                        {refreshing ? 'Loading configuration...' : 'No configuration keys found.'}
                                     </td>
                                 </tr>
                             ) : (

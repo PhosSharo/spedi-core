@@ -120,20 +120,20 @@ export function SystemActivity() {
                     filteredLogs.map(log => (
                         <div key={log.id} className="flex flex-col gap-1 text-[11px] font-mono group">
                             <div
-                                className="flex items-start gap-2 cursor-pointer hover:bg-white/5 p-1 rounded-sm transition-all border border-transparent hover:border-white/10"
+                                className="flex items-start gap-2.5 cursor-pointer hover:bg-white/5 p-1.5 rounded-sm transition-all border border-transparent hover:border-white/10"
                                 onClick={() => toggleExpand(log.id)}
                             >
-                                <span className="text-muted-foreground whitespace-nowrap opacity-40 group-hover:opacity-70">
+                                <span className="text-muted-foreground whitespace-nowrap opacity-40 group-hover:opacity-70 shrink-0 mt-[2px]">
                                     {new Date(log.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                 </span>
-                                <span className="text-[9px] mt-[2px] opacity-75">{getLevelIcon(log.level || 'info')}</span>
-                                <span className={`uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-[9px] font-sans font-bold ${getSourceColor(log.source || 'system')}`}>
+                                <span className="text-[10px] mt-[3px] opacity-75 shrink-0">{getLevelIcon(log.level || 'info')}</span>
+                                <span className={`uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-[9px] font-sans font-bold shrink-0 mt-[1px] ${getSourceColor(log.source || 'system')}`}>
                                     {(log.source || 'sys').substring(0, 3)}
                                 </span>
-                                <span className="text-foreground/50 uppercase tracking-[2px] text-[9px] w-16 shrink-0 mt-[2px] font-sans font-bold">
+                                <span className="text-foreground/50 uppercase tracking-wider text-[10px] w-28 shrink-0 mt-[2px] font-mono font-bold truncate">
                                     [{log.type || 'unknown'}]
                                 </span>
-                                <span className={`text-foreground/90 break-all leading-relaxed ${log.level === 'error' ? 'text-red-400' : log.level === 'warn' ? 'text-yellow-400' : ''}`}>
+                                <span className={`text-foreground/90 break-words leading-relaxed mt-[2px] flex-1 ${log.level === 'error' ? 'text-red-400' : log.level === 'warn' ? 'text-yellow-400' : ''}`}>
                                     {log.message || 'Empty payload'}
                                 </span>
                             </div>

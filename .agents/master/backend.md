@@ -1,7 +1,7 @@
 # SPEDI Backend Design Document
 
-**Stack:** Node.js 20 + Fastify — Mosquitto on Railway — Supabase PostgreSQL + Auth — Next.js dashboard on Vercel  
-**Status:** In Development. Core architecture and real-time visualization active.
+**Stack:** Node.js 20 + Fastify — Mosquitto on Railway — Supabase PostgreSQL + Auth — Next.js dashboard on Railway (via Custom Dockerfile)  
+**Status:** In Production (MVP Context). Core architecture, real-time visualization, and camera snapshots active.
 
 ---
 
@@ -11,7 +11,7 @@ SPEDI is an IoT-based RC boat built on ESP32-S3 architecture, communicating over
 
 The backend must mediate between three distinct clients — a Flutter controller app, a Next.js admin dashboard, and the boat — relaying commands in one direction and telemetry in the other, while holding genuine authority over system state and configuration. The architectural risk was designing a server that is merely a dumb relay with no logic of its own. A secondary constraint is latency: joystick control must be as fast as possible, meaning nothing in the command hot path should touch a database, re-validate credentials, or await anything.
 
-All API interaction is documented and interactively testable via the dashboard's `/docs` portal, which parses the Fastify OpenAPI spec and auto-injects Supabase session tokens for seamless "Try It" debugging.
+All API interaction is documented and interactively testable via the dashboard's `/docs` portal, which parses the Fastify OpenAPI spec and auto-injects Supabase session tokens. The portal features a dual-view architecture: an Admin Guide with raw endpoints and internal settings for superusers, and a scrubbed Public Guide for developers.
 
 Two interaction modes: **manual** (joystick stream over WebSocket) and **auto** (route dispatched once over REST). Hot path for joystick must never touch the database or await anything.
 
@@ -53,7 +53,7 @@ One active session per device at a time. Enforced in application layer, not DB c
 Append-only. `raw` stores the full device payload verbatim. This is the truest form of the Tolerant Reader pattern: no device-sent fields are presumed stable. Querying values like GPS or obstacle readings is done via JSONB operators (e.g., `raw->>'lat'`). When a field stabilizes and requires indexing, it is promoted to a generated column or a typed column via migration. Payloads exceeding the configurable `telemetry_max_payload_bytes` limit are silently dropped at ingestion.
 
 **config** `id serial, key unique, value text, description, updated_at, updated_by→users`  
-Flat key-value. All values stored as text; application layer parses. Known keys: `mqtt_broker_host`, `mqtt_broker_port`, `mqtt_topic_joystick`, `mqtt_topic_route`, `mqtt_topic_status`, `joystick_timeout_ms`, `telemetry_interval_ms`, `telemetry_field_map` (JSON: maps device payload keys to shadow keys), `telemetry_max_payload_bytes` (integer: max payload size, default 4096).
+Flat key-value. All values stored as text; application layer parses. Known keys: `mqtt_broker_host`, `mqtt_broker_port`, `mqtt_topic_joystick`, `mqtt_topic_route`, `mqtt_topic_status`, `mqtt_topic_camera`, `joystick_timeout_ms`, `telemetry_interval_ms`, `telemetry_field_map` (JSON: maps device payload keys to shadow keys), `telemetry_max_payload_bytes` (integer: max payload size, default 4096).
 
 ---
 
@@ -113,7 +113,7 @@ Flat key-value. All values stored as text; application layer parses. Known keys:
 ### Realtime
 | Protocol | Path | Auth | Notes |
 |----------|------|------|-------|
-| SSE | `/events` | required | Unified event stream for dashboard. Managed via `SseProvider`. Event types: `telemetry` (full payload), `syslog` (formatted logs), `session_change`, `device_online`, `device_offline`. |
+| SSE | `/events` | required | Unified event stream for dashboard. Managed via `SseProvider`. Event types: `telemetry` (full payload), `syslog` (formatted logs), `session_change`, `device_online`, `device_offline`, `camera_snapshot`. |
 | WebSocket | `/control?token=JWT` | JWT in query param | Flutter app only. Joystick in: `{type:"joystick", payload:{throttle, steering}}`. Validated once on connect. |
 
 ---
@@ -125,7 +125,7 @@ Supabase Auth issues JWTs with custom claim `app_metadata.is_superuser` injected
 - **Authenticated:** any valid JWT.
 - **Superuser:** `request.user.is_superuser === true`. Full administrative access including config and user management.
 - **Session owner:** requesting user must own the active session on the target device.
-- **Standard User (Dashboard RBAC):** non-superusers are automatically redirected to the Documentation (`/docs`) path. All other dashboard routes (Dashboard, Devices, Config, Users) are hidden and logically guarded.
+- **Standard User:** non-superusers are automatically redirected to the Documentation (`/docs`) path, where they see a scrubbed, public-facing version of the integration guides. All other dashboard routes (Dashboard, Devices, Config, Users) are hidden and logically guarded.
 
 WebSocket uses `?token=` query param â€” browser WebSocket implementations do not reliably support Authorization headers during upgrade.
 

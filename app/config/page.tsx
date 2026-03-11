@@ -164,19 +164,47 @@ export default function ConfigManager() {
                 </div>
             )}
 
-            {/* ── System Endpoints (Immutable) ────────────────────────────── */}
+            {/* ── System Endpoints (Immutable & Grouped) ────────────────── */}
             <div className="rounded-sm border border-border bg-background">
                 <div className="px-4 py-3 border-b border-border flex items-center justify-start gap-2 bg-muted/30 w-full">
                     <RiServerLine size={14} className="text-muted-foreground mr-1" />
-                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest font-sans text-left">System Endpoints</span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-sans ml-1 text-left">// Read-Only</span>
+                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest font-sans text-left">System Infrastructure</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-sans ml-1 text-left">// Deployment Constants</span>
                 </div>
                 <div className="divide-y divide-border/50">
-                    {systemEndpoints.map((ep) => (
-                        <div key={ep.label} className="flex items-center px-4 py-2.5 group">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans w-48 flex-shrink-0">{ep.label}</span>
+                    {/* API INFRASTRUCTURE GROUP */}
+                    <div className="px-4 py-2 bg-muted/10">
+                        <span className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">01_API_INFRASTRUCTURE</span>
+                    </div>
+                    {systemEndpoints.slice(0, 3).map((ep) => (
+                        <div key={ep.label} className="flex items-center px-4 py-2.5 group hover:bg-muted/30 transition-colors">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans w-56 flex-shrink-0">{ep.label}</span>
                             <span className="text-[11px] font-mono text-foreground/80 text-left break-all select-all flex-1">{ep.value}</span>
-                            <RiLockLine size={12} className="text-muted-foreground/30 ml-3 flex-shrink-0" />
+                            <RiLockLine size={12} className="text-muted-foreground/20 ml-3 flex-shrink-0" />
+                        </div>
+                    ))}
+
+                    {/* MQTT CONNECTIVITY GROUP */}
+                    <div className="px-4 py-2 bg-muted/10 border-t border-border/50">
+                        <span className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">02_MQTT_CONNECTIVITY</span>
+                    </div>
+                    {systemEndpoints.slice(3, 5).map((ep) => (
+                        <div key={ep.label} className="flex items-center px-4 py-2.5 group hover:bg-muted/30 transition-colors">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans w-56 flex-shrink-0">{ep.label}</span>
+                            <span className="text-[11px] font-mono text-foreground/80 text-left break-all select-all flex-1">{ep.value}</span>
+                            <RiLockLine size={12} className="text-muted-foreground/20 ml-3 flex-shrink-0" />
+                        </div>
+                    ))}
+
+                    {/* ACCESS CREDENTIALS GROUP */}
+                    <div className="px-4 py-2 bg-muted/10 border-t border-border/50">
+                        <span className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">03_ACCESS_CREDENTIALS</span>
+                    </div>
+                    {systemEndpoints.slice(5).map((ep) => (
+                        <div key={ep.label} className="flex items-center px-4 py-2.5 group hover:bg-muted/30 transition-colors">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans w-56 flex-shrink-0">{ep.label}</span>
+                            <span className="text-[11px] font-mono text-foreground/80 text-left break-all select-all flex-1">{ep.value}</span>
+                            <RiLockLine size={12} className="text-muted-foreground/20 ml-3 flex-shrink-0" />
                         </div>
                     ))}
                 </div>

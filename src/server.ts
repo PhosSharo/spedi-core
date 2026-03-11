@@ -125,11 +125,18 @@ fastify.register(swagger, {
 fastify.get('/openapi.json', { schema: { hide: true } }, async () => {
     const spec = fastify.swagger() as any;
     
-    // Strip CORS OPTIONS routes generated automatically
     if (spec && spec.paths) {
         for (const path in spec.paths) {
+            // Strip CORS OPTIONS routes generated automatically
             if (spec.paths[path].options) {
                 delete spec.paths[path].options;
+            }
+            // Remove trailing-slash duplicates (e.g. /devices/ when /devices exists)
+            if (path.endsWith('/') && path.length > 1) {
+                const canonical = path.slice(0, -1);
+                if (spec.paths[canonical]) {
+                    delete spec.paths[path];
+                }
             }
         }
     }

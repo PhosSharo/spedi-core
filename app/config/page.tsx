@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { RiRobot2Line, RiSettings4Line, RiLoader4Line, RiLogoutBoxRLine, RiSave3Line, RiCloseLine, RiEdit2Line, RiCheckLine } from "@remixicon/react";
+import { useEffect, useState, useCallback } from 'react';
+import { RiLoader4Line, RiSave3Line, RiCloseLine, RiEdit2Line, RiCheckLine, RiLockLine, RiRefreshLine, RiServerLine } from "@remixicon/react";
 import { apiFetch } from '@/lib/api';
 
 interface ConfigRow {
@@ -13,33 +13,57 @@ interface ConfigRow {
     updated_by: string | null;
 }
 
+interface SystemEndpoint {
+    label: string;
+    value: string;
+}
+
 export default function ConfigManager() {
     const [configData, setConfigData] = useState<ConfigRow[]>([]);
+    const [immutableKeys, setImmutableKeys] = useState<string[]>([]);
+    const [systemEndpoints, setSystemEndpoints] = useState<SystemEndpoint[]>([]);
     const [editingKey, setEditingKey] = useState<string | null>(null);
     const [editKeyString, setEditKeyString] = useState<string>('');
     const [editValue, setEditValue] = useState<string>('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [refreshingEndpoints, setRefreshingEndpoints] = useState(false);
+
+    const fetchConfig = useCallback(async () => {
+        try {
+            const resConfig = await apiFetch('/config');
+            if (!resConfig.ok) {
+                throw new Error('Failed to fetch config');
+            }
+
+            const data = await resConfig.json();
+            setConfigData(data.config || []);
+            setImmutableKeys(data.immutableKeys || []);
+        } catch (err) {
+            console.error('Failed to load config manager:', err);
+            setError('Failed to fetch configuration data.');
+        }
+    }, []);
+
+    const fetchSystemEndpoints = useCallback(async () => {
+        try {
+            setRefreshingEndpoints(true);
+            const res = await apiFetch('/config/system');
+            if (!res.ok) throw new Error('Failed to fetch system endpoints');
+            const data = await res.json();
+            setSystemEndpoints(data.endpoints || []);
+        } catch (err) {
+            console.error('Failed to load system endpoints:', err);
+        } finally {
+            setRefreshingEndpoints(false);
+        }
+    }, []);
 
     useEffect(() => {
-        const fetchConfig = async () => {
-            try {
-                const resConfig = await apiFetch('/config');
-                if (!resConfig.ok) {
-                    throw new Error('Failed to fetch config');
-                }
-
-                const data = await resConfig.json();
-                setConfigData(data);
-            } catch (err) {
-                console.error('Failed to load config manager:', err);
-                setError('Failed to fetch configuration data.');
-            }
-        };
-
         fetchConfig();
-    }, []);
+        fetchSystemEndpoints();
+    }, [fetchConfig, fetchSystemEndpoints]);
 
     const handleEditStart = (row: ConfigRow) => {
         setEditingKey(row.key);
@@ -81,6 +105,9 @@ export default function ConfigManager() {
             setEditingKey(null);
             setSuccess('Configuration saved. The backend is reloading to apply changes; this may take a few seconds.');
 
+            // Auto-refresh system endpoints since config changed
+            fetchSystemEndpoints();
+
             // Auto-hide success message after 5 seconds
             setTimeout(() => {
                 setSuccess(null);
@@ -93,8 +120,10 @@ export default function ConfigManager() {
         }
     };
 
+    const isImmutable = (key: string) => immutableKeys.includes(key);
+
     return (
-        <div className="p-4 lg:p-6 flex flex-col gap-4 h-full">
+        <div className="p-4 lg:p-6 flex flex-col gap-4 h-full overflow-y-auto">
             <div className="border-b border-border pb-4 flex items-end justify-between">
                 <div>
                     <h1 className="text-lg font-bold tracking-widest uppercase font-sans text-foreground">System_Configuration //</h1>
@@ -116,6 +145,41 @@ export default function ConfigManager() {
                 </div>
             )}
 
+            {/* ── System Endpoints (Immutable) ────────────────────────────── */}
+            <div className="rounded-sm border border-border bg-background">
+                <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-muted/30">
+                    <div className="flex items-center gap-2">
+                        <RiServerLine size={14} className="text-muted-foreground" />
+                        <span className="text-[10px] font-bold text-foreground uppercase tracking-widest font-sans">System Endpoints</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-sans ml-1">// Read-Only</span>
+                    </div>
+                    <button
+                        onClick={fetchSystemEndpoints}
+                        disabled={refreshingEndpoints}
+                        className="p-1 text-muted-foreground hover:text-foreground rounded-sm transition-colors disabled:opacity-50"
+                        title="Refresh Endpoints"
+                    >
+                        <RiRefreshLine size={14} className={refreshingEndpoints ? 'animate-spin' : ''} />
+                    </button>
+                </div>
+                <div className="divide-y divide-border/50">
+                    {systemEndpoints.length === 0 ? (
+                        <div className="px-4 py-6 text-center text-muted-foreground uppercase tracking-widest font-sans text-[10px]">
+                            Loading system endpoints...
+                        </div>
+                    ) : (
+                        systemEndpoints.map((ep) => (
+                            <div key={ep.label} className="flex items-center justify-between px-4 py-2.5 group">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans w-48 flex-shrink-0">{ep.label}</span>
+                                <span className="text-[11px] font-mono text-foreground/80 text-right break-all select-all">{ep.value}</span>
+                                <RiLockLine size={12} className="text-muted-foreground/30 ml-3 flex-shrink-0" />
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+
+            {/* ── Mutable Configuration Table ──────────────────────────────── */}
             <div className="rounded-sm border border-border bg-background flex-1 flex flex-col">
                 <div className="overflow-x-auto rounded-sm">
                     <table className="w-full text-left text-xs">
@@ -136,81 +200,89 @@ export default function ConfigManager() {
                                     </td>
                                 </tr>
                             ) : (
-                                configData.map((row) => (
-                                    <tr key={row.key} className="hover:bg-muted/50 transition-colors group">
-                                        <td className="px-4 py-3 font-mono text-foreground font-bold whitespace-nowrap">
-                                            {editingKey === row.key ? (
-                                                <input
-                                                    type="text"
-                                                    value={editKeyString}
-                                                    onChange={(e) => setEditKeyString(e.target.value)}
-                                                    className="w-full bg-background border border-foreground rounded-sm px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
-                                                    disabled={saving}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') handleSave(row.key);
-                                                        if (e.key === 'Escape') handleEditCancel();
-                                                    }}
-                                                />
-                                            ) : (
-                                                row.key
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 font-mono max-w-xs truncate">
-                                            {editingKey === row.key ? (
-                                                <input
-                                                    type="text"
-                                                    value={editValue}
-                                                    onChange={(e) => setEditValue(e.target.value)}
-                                                    className="w-full bg-background border border-foreground rounded-sm px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
-                                                    autoFocus
-                                                    disabled={saving}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') handleSave(row.key);
-                                                        if (e.key === 'Escape') handleEditCancel();
-                                                    }}
-                                                />
-                                            ) : (
-                                                <span className="text-muted-foreground">{row.value}</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 text-muted-foreground text-[10px] uppercase font-sans tracking-wide max-w-sm">
-                                            {row.description || <span className="italic opacity-50">NULL</span>}
-                                        </td>
-                                        <td className="px-4 py-3 text-muted-foreground text-[10px] uppercase font-sans tracking-widest whitespace-nowrap">
-                                            {new Date(row.updated_at).toLocaleString()}
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            {editingKey === row.key ? (
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        onClick={() => handleSave(row.key)}
+                                configData.map((row) => {
+                                    const locked = isImmutable(row.key);
+                                    return (
+                                        <tr key={row.key} className={`transition-colors group ${locked ? 'opacity-60' : 'hover:bg-muted/50'}`}>
+                                            <td className="px-4 py-3 font-mono text-foreground font-bold whitespace-nowrap">
+                                                {editingKey === row.key ? (
+                                                    <input
+                                                        type="text"
+                                                        value={editKeyString}
+                                                        onChange={(e) => setEditKeyString(e.target.value)}
+                                                        className="w-full bg-background border border-foreground rounded-sm px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                                                         disabled={saving}
-                                                        className="p-1 text-background bg-foreground hover:bg-muted-foreground rounded-sm transition-colors disabled:opacity-50 border border-foreground"
-                                                        title="Save"
-                                                    >
-                                                        {saving ? <RiLoader4Line className="animate-spin" size={16} /> : <RiSave3Line size={16} />}
-                                                    </button>
-                                                    <button
-                                                        onClick={handleEditCancel}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') handleSave(row.key);
+                                                            if (e.key === 'Escape') handleEditCancel();
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <span className="flex items-center gap-1.5">
+                                                        {row.key}
+                                                        {locked && <RiLockLine size={11} className="text-muted-foreground/40" />}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 font-mono max-w-xs truncate">
+                                                {editingKey === row.key ? (
+                                                    <input
+                                                        type="text"
+                                                        value={editValue}
+                                                        onChange={(e) => setEditValue(e.target.value)}
+                                                        className="w-full bg-background border border-foreground rounded-sm px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                                                        autoFocus
                                                         disabled={saving}
-                                                        className="p-1 text-foreground hover:text-background hover:bg-foreground rounded-sm transition-colors disabled:opacity-50 border border-border"
-                                                        title="Cancel"
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') handleSave(row.key);
+                                                            if (e.key === 'Escape') handleEditCancel();
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <span className="text-muted-foreground">{row.value}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-muted-foreground text-[10px] uppercase font-sans tracking-wide max-w-sm">
+                                                {row.description || <span className="italic opacity-50">NULL</span>}
+                                            </td>
+                                            <td className="px-4 py-3 text-muted-foreground text-[10px] uppercase font-sans tracking-widest whitespace-nowrap">
+                                                {new Date(row.updated_at).toLocaleString()}
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                {locked ? (
+                                                    <span className="text-[10px] text-muted-foreground/40 uppercase tracking-widest font-sans">Locked</span>
+                                                ) : editingKey === row.key ? (
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button
+                                                            onClick={() => handleSave(row.key)}
+                                                            disabled={saving}
+                                                            className="p-1 text-background bg-foreground hover:bg-muted-foreground rounded-sm transition-colors disabled:opacity-50 border border-foreground"
+                                                            title="Save"
+                                                        >
+                                                            {saving ? <RiLoader4Line className="animate-spin" size={16} /> : <RiSave3Line size={16} />}
+                                                        </button>
+                                                        <button
+                                                            onClick={handleEditCancel}
+                                                            disabled={saving}
+                                                            className="p-1 text-foreground hover:text-background hover:bg-foreground rounded-sm transition-colors disabled:opacity-50 border border-border"
+                                                            title="Cancel"
+                                                        >
+                                                            <RiCloseLine size={16} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleEditStart(row)}
+                                                        className="p-1 text-muted-foreground hover:text-foreground bg-transparent rounded-sm transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                        title="Edit Value"
                                                     >
-                                                        <RiCloseLine size={16} />
+                                                        <RiEdit2Line size={16} />
                                                     </button>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => handleEditStart(row)}
-                                                    className="p-1 text-muted-foreground hover:text-foreground bg-transparent rounded-sm transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                    title="Edit Value"
-                                                >
-                                                    <RiEdit2Line size={16} />
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

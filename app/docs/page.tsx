@@ -152,10 +152,10 @@ function InfraSection() {
 
             <Subsection title="MQTT Broker Accounts">
                 <DataTable
-                    headers={['Account', 'Username', 'Permissions']}
+                    headers={['Account', 'Username', 'Password', 'Permissions']}
                     rows={[
-                        ['Device', 'spedi-device', 'Read: joystick, route  ·  Write: status, camera'],
-                        ['Server', 'spedi-server', 'Full read/write on all topics'],
+                        ['Device', 'device', 'spedi2026', 'Read: joystick, route  ·  Write: status, camera'],
+                        ['Server', 'server', 'spedi2026', 'Full read/write on all topics'],
                     ]}
                 />
                 <p className="mt-2">
@@ -188,8 +188,8 @@ function ArduinoSection() {
 
 const char* mqtt_server = "centerbeam.proxy.rlwy.net";
 const int   mqtt_port   = 14546;
-const char* mqtt_user   = "spedi-device";
-const char* mqtt_pass   = "<password>";
+const char* mqtt_user   = "device";
+const char* mqtt_pass   = "spedi2026";
 
 void setupMQTT() {
     mqttClient.setServer(mqtt_server, mqtt_port);
@@ -552,7 +552,7 @@ function ReferenceTab({ token }: { token: string | null }) {
                     theme: 'kepler',
                     layout: 'classic',
                     hideModels: true,
-                    hideDownloadButton: true,
+                    hideDownloadButton: false,
                     forceDarkModeState: 'dark',
                     searchHotKey: 'k',
                     withDefaultFonts: false,

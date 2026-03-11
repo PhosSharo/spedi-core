@@ -344,3 +344,21 @@
 > Implemented section-based navigation via selectable sidebar with CSS `hidden` toggles.
 > Cleaned up redundant Architecture/RBAC/Data Model content from OpenAPI description in `src/server.ts`.
 > Bumped platform API version to v1.0.5 and verified production build integrity.
+
+65 | FIX     | User Creation Error Surfacing
+> `UserService` now validates `SUPABASE_SERVICE_ROLE_KEY` at startup with `ensureInitialized()` guard.
+> Wraps "Invalid API key" errors with actionable message pointing to the environment variable.
+
+66 | FIX     | API Reference Duplicate Cleanup & Spec Download
+> `GET /openapi.json` handler now strips trailing-slash duplicate paths (e.g. `/devices/` vs `/devices`).
+> Enabled Scalar spec download button (`hideDownloadButton: false`).
+
+67 | DOCS    | MQTT Credential Correction in Integration Guides
+> Fixed MQTT usernames in `app/docs/page.tsx`: `spedi-device` → `device`, `spedi-server` → `server`.
+> Added `spedi2026` password to the broker accounts table and Arduino code example.
+
+68 | FEAT    | System Endpoints & Immutable Config Values
+> Added `GET /config/system` endpoint returning cached deployment-derived endpoints (REST, SSE, WS, MQTT).
+> `GET /config` response now includes `immutableKeys` array (`mqtt_broker_host`, `mqtt_broker_port`).
+> Rewrote `app/config/page.tsx` with read-only System Endpoints section, lock icons on immutable keys, manual refresh, and auto-refresh on config save.
+

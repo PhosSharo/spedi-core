@@ -611,3 +611,20 @@ useEffect(() => {
     }
 }, [isVisible]);
 ```
+
+---
+
+## Supabase Admin API — Service Role Key vs Anon Key — 2026-03-11
+
+### ❌ What Failed
+`POST /users` returned 400 "Invalid API key" when creating users via `supabaseAdmin.auth.admin.createUser()`.
+
+### 🔍 Why It Failed
+The `SUPABASE_SERVICE_ROLE_KEY` environment variable on Railway was either missing, stale, or accidentally set to the anon key. Supabase Admin Auth API calls require the service role key — the anon key is rejected with a generic "Invalid API key" error that gives no hint about which key is wrong.
+
+### ✅ Fix / Workaround
+Added startup validation (`ensureInitialized()`) and error wrapping in `UserService` to surface actionable messages. Verify the key is the **service_role** key (not anon) in Railway environment variables.
+
+### ⚠️ Watch Out
+The two Supabase keys look identical in format (both are JWTs). The only way to distinguish them is by checking the `role` claim inside the token payload (`anon` vs `service_role`).
+

@@ -9,6 +9,54 @@ const ErrorResponse = {
     },
 };
 
+// ── System Endpoints (immutable, deployment-derived) ──────────────────
+
+/** Keys that should not be editable via the dashboard config table. */
+const IMMUTABLE_KEYS = ['mqtt_broker_host', 'mqtt_broker_port'];
+
+interface SystemEndpoint {
+    label: string;
+    value: string;
+}
+
+/** Lazily computed and cached. Refreshed only on explicit call to rebuildCache(). */
+let cachedSystemEndpoints: SystemEndpoint[] | null = null;
+
+function buildSystemEndpoints(): SystemEndpoint[] {
+    // Railway injects RAILWAY_PUBLIC_DOMAIN on public services.
+    // Fallback to a well-known production URL if not available (e.g., local dev).
+    const publicDomain = process.env.RAILWAY_PUBLIC_DOMAIN || process.env.PUBLIC_DOMAIN || '';
+    const apiBase = publicDomain
+        ? `https://${publicDomain}`
+        : (process.env.NEXT_PUBLIC_API_URL || `http://127.0.0.1:${process.env.PORT || 3000}`);
+
+    const wsBase = apiBase.replace(/^http/, 'ws');
+
+    const mqttPublicHost = process.env.MQTT_PUBLIC_HOST || 'centerbeam.proxy.rlwy.net';
+    const mqttPublicPort = process.env.MQTT_PUBLIC_PORT || '14546';
+    const mqttInternalHost = configService.get('mqtt_broker_host') || 'mosquitto';
+    const mqttInternalPort = configService.get('mqtt_broker_port') || '1883';
+
+    return [
+        { label: 'REST API Base', value: apiBase },
+        { label: 'SSE Event Stream', value: `${apiBase}/events?token=<JWT>` },
+        { label: 'WebSocket Control', value: `${wsBase}/control?token=<JWT>` },
+        { label: 'MQTT Public Proxy', value: `${mqttPublicHost} : ${mqttPublicPort}` },
+        { label: 'MQTT Internal (Railway)', value: `${mqttInternalHost}.railway.internal : ${mqttInternalPort}` },
+    ];
+}
+
+function getSystemEndpoints(): SystemEndpoint[] {
+    if (!cachedSystemEndpoints) {
+        cachedSystemEndpoints = buildSystemEndpoints();
+    }
+    return cachedSystemEndpoints;
+}
+
+function rebuildSystemEndpointsCache(): void {
+    cachedSystemEndpoints = buildSystemEndpoints();
+}
+
 const ConfigEntry = {
     type: 'object',
     properties: {
@@ -45,7 +93,48 @@ export default async function configRoutes(fastify: FastifyInstance) {
         if (!user || !user.is_superuser) {
             return reply.status(403).send({ error: 'Forbidden: Superuser access required' });
         }
-        return configService.getAll();
+        return {
+            config: configService.getAll(),
+            immutableKeys: IMMUTABLE_KEYS,
+        };
+    });
+
+    /**
+     * GET /config/system
+     * Returns cached deployment-derived system endpoints.
+     */
+    fastify.get('/config/system', {
+        onRequest: [fastify.authenticate],
+        schema: {
+            tags: ['Config'],
+            summary: 'Get system endpoints',
+            description: 'Returns deployment-derived system endpoints (REST, SSE, WS, MQTT). These values are immutable and derive from environment variables. Superuser only.',
+            security: [{ BearerAuth: [] }],
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        endpoints: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    label: { type: 'string' },
+                                    value: { type: 'string' },
+                                },
+                            },
+                        },
+                    },
+                },
+                403: ErrorResponse,
+            },
+        },
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const user = request.user;
+        if (!user || !user.is_superuser) {
+            return reply.status(403).send({ error: 'Forbidden: Superuser access required' });
+        }
+        return { endpoints: getSystemEndpoints() };
     });
 
     /**
@@ -108,6 +197,8 @@ export default async function configRoutes(fastify: FastifyInstance) {
 
         try {
             const result = await configService.update(updates, user.id);
+            // Bust the system endpoints cache so the next fetch picks up any changes
+            rebuildSystemEndpointsCache();
             if (result.mqttNeedsReload) {
                 mqttService.reload().catch(err => request.log.error(err, 'Failed to reload MQTT service'));
             }

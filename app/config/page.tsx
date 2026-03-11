@@ -173,9 +173,9 @@ export default function ConfigManager() {
                 </div>
                 <div className="divide-y divide-border/50">
                     {systemEndpoints.map((ep) => (
-                        <div key={ep.label} className="flex items-center justify-between px-4 py-2.5 group">
+                        <div key={ep.label} className="flex items-center px-4 py-2.5 group">
                             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-sans w-48 flex-shrink-0">{ep.label}</span>
-                            <span className="text-[11px] font-mono text-foreground/80 text-right break-all select-all">{ep.value}</span>
+                            <span className="text-[11px] font-mono text-foreground/80 text-left break-all select-all flex-1">{ep.value}</span>
                             <RiLockLine size={12} className="text-muted-foreground/30 ml-3 flex-shrink-0" />
                         </div>
                     ))}

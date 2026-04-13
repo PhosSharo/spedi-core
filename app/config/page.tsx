@@ -22,11 +22,11 @@ interface SystemEndpoint {
 // If the API call fails or the backend hasn't deployed yet,
 // these values keep the config page functional.
 const FALLBACK_ENDPOINTS: SystemEndpoint[] = [
-    { label: 'REST API Base', value: 'https://spedi-core-production.up.railway.app' },
-    { label: 'SSE Event Stream', value: 'https://spedi-core-production.up.railway.app/events?token=<JWT>' },
-    { label: 'WebSocket Control', value: 'wss://spedi-core-production.up.railway.app/control?token=<JWT>' },
-    { label: 'MQTT Public Proxy', value: 'centerbeam.proxy.rlwy.net : 14546' },
-    { label: 'MQTT Internal (Railway)', value: 'mosquitto.railway.internal : 1883' },
+    { label: 'REST API Base', value: 'https://spedi-core-production-8104.up.railway.app' },
+    { label: 'SSE Event Stream', value: 'https://spedi-core-production-8104.up.railway.app/events?token=<JWT>' },
+    { label: 'WebSocket Control', value: 'wss://spedi-core-production-8104.up.railway.app/control?token=<JWT>' },
+    { label: 'MQTT Public Proxy', value: 'metro.proxy.rlwy.net : 52942' },
+    { label: 'MQTT Internal (Railway)', value: 'spedi-mqtt.railway.internal : 1883' },
     { label: 'MQTT Device Creds', value: 'device : spedi2026' },
     { label: 'MQTT Server Creds', value: 'server : spedi2026' },
 ];

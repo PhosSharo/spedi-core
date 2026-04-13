@@ -19,9 +19,25 @@ const fastify = Fastify({
     }
 });
 
-// CORS — allow all origins (reflects requester) for Flutter Web and development
+// CORS — explicitly allow localhost for Flutter Web debug, Vercel, and Railway
 fastify.register(cors, {
-    origin: true,
+    origin: (origin, cb) => {
+        // Always allow requests with no origin (like mobile devices, Postman, etc.)
+        if (!origin) {
+            cb(null, true);
+            return;
+        }
+        
+        // Explicitly allow localhost, 127.0.0.1, Vercel, and Railway
+        const allowedPatterns = [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/, /\.vercel\.app$/, /\.railway\.app$/];
+        if (allowedPatterns.some(pattern => pattern.test(origin))) {
+            cb(null, true); 
+            return;
+        }
+
+        // Fallback: reflect the origin (same as origin: true)
+        cb(null, true);
+    },
     credentials: true,
     methods: 'GET,POST,PUT,DELETE,PATCH,OPTIONS',
     allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization',

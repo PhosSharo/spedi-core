@@ -32,8 +32,8 @@ function buildSystemEndpoints(): SystemEndpoint[] {
 
     const wsBase = apiBase.replace(/^http/, 'ws');
 
-    const mqttPublicHost = process.env.MQTT_PUBLIC_HOST || 'centerbeam.proxy.rlwy.net';
-    const mqttPublicPort = process.env.MQTT_PUBLIC_PORT || '14546';
+    const mqttPublicHost = process.env.MQTT_PUBLIC_HOST || 'metro.proxy.rlwy.net';
+    const mqttPublicPort = process.env.MQTT_PUBLIC_PORT || '52942';
     const mqttInternalHost = configService.get('mqtt_broker_host') || 'mosquitto';
     const mqttInternalPort = configService.get('mqtt_broker_port') || '1883';
 

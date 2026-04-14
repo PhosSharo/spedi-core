@@ -25,7 +25,7 @@ const FALLBACK_ENDPOINTS: SystemEndpoint[] = [
     { label: 'REST API Base', value: 'https://spedi-core-production-8104.up.railway.app' },
     { label: 'SSE Event Stream', value: 'https://spedi-core-production-8104.up.railway.app/events?token=<JWT>' },
     { label: 'WebSocket Control', value: 'wss://spedi-core-production-8104.up.railway.app/control?token=<JWT>' },
-    { label: 'MQTT Public Proxy', value: 'metro.proxy.rlwy.net : 52942' },
+    { label: 'MQTT Public Proxy', value: 'metro.proxy.rlwy.net : 41220' },
     { label: 'MQTT Internal (Railway)', value: 'spedi-mqtt.railway.internal : 1883' },
     { label: 'MQTT Device Creds', value: 'device : spedi2026' },
     { label: 'MQTT Server Creds', value: 'server : spedi2026' },

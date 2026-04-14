@@ -27,11 +27,11 @@ fastify.register(cors, {
             cb(null, true);
             return;
         }
-        
+
         // Explicitly allow localhost, 127.0.0.1, Vercel, and Railway
-        const allowedPatterns = [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/, /\.vercel\.app$/, /\.railway\.app$/];
+        const allowedPatterns = [/^https?:\/\/localhost:\d+$/, /^https?:\/\/127\.0\.0\.1:\d+$/, /\.vercel\.app$/, /\.railway\.app$/];
         if (allowedPatterns.some(pattern => pattern.test(origin))) {
-            cb(null, true); 
+            cb(null, true);
             return;
         }
 
@@ -140,7 +140,7 @@ fastify.register(swagger, {
 // Expose spec at GET /openapi.json
 fastify.get('/openapi.json', { schema: { hide: true } }, async () => {
     const spec = fastify.swagger() as any;
-    
+
     if (spec && spec.paths) {
         // Pass 1: Strip OPTIONS methods and trailing-slash duplicates
         for (const path in spec.paths) {
@@ -158,13 +158,13 @@ fastify.get('/openapi.json', { schema: { hide: true } }, async () => {
         for (const path in spec.paths) {
             const methods = Object.keys(spec.paths[path]);
             // OpenAPI path items can have non-method keys like 'parameters', 'summary', etc.
-            const httpMethods = methods.filter(m => ['get','post','put','delete','patch','head','trace'].includes(m));
+            const httpMethods = methods.filter(m => ['get', 'post', 'put', 'delete', 'patch', 'head', 'trace'].includes(m));
             if (httpMethods.length === 0) {
                 delete spec.paths[path];
             }
         }
     }
-    
+
     // Force empty servers block to prevent Scalar fallback
     if (spec) {
         spec.servers = [];
@@ -178,7 +178,7 @@ fastify.addHook('onError', async (request, reply, error) => {
     const statusCode = reply.statusCode || 500;
     // Don't broadcast 404s for favicon or maps which are spammy, but broadcast real API errors
     if (statusCode === 404 && !request.url.startsWith('/api') && !request.url.startsWith('/devices')) return;
-    
+
     const msg = `HTTP ${statusCode}: ${request.method} ${request.url} - ${error.message}`;
     logService.error('system', 'connection', msg, {
         name: error.name,
@@ -186,19 +186,19 @@ fastify.addHook('onError', async (request, reply, error) => {
     });
 });
 
-    // Register routes
-    fastify.register(healthRoutes);
-    fastify.register(authRoutes);
-    fastify.register(configRoutes);
-    fastify.register(deviceRoutes);
-    fastify.register(realtimeRoutes);
-    fastify.register(controlRoutes);
-    fastify.register(sessionRoutes);
-    fastify.register(routeRoutes);
-    fastify.register(telemetryRoutes);
-    fastify.register(debugRoutes);
-    fastify.register(userRoutes);
-    fastify.register(cameraRoutes);
+// Register routes
+fastify.register(healthRoutes);
+fastify.register(authRoutes);
+fastify.register(configRoutes);
+fastify.register(deviceRoutes);
+fastify.register(realtimeRoutes);
+fastify.register(controlRoutes);
+fastify.register(sessionRoutes);
+fastify.register(routeRoutes);
+fastify.register(telemetryRoutes);
+fastify.register(debugRoutes);
+fastify.register(userRoutes);
+fastify.register(cameraRoutes);
 
 const start = async () => {
     try {

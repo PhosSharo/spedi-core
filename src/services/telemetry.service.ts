@@ -184,8 +184,16 @@ export class TelemetryService {
     }
 
     /**
+     * Maximum telemetry rows to retain per device (CCTV-style circular buffer).
+     * Once exceeded, the oldest rows are deleted after each insert.
+     */
+    private readonly MAX_TELEMETRY_ROWS = 100;
+
+    /**
      * Persist telemetry to the database. Async, fire-and-forget.
      * Tolerant reader: stores full raw payload as-is, no field validation.
+     *
+     * After insert, prunes oldest rows beyond MAX_TELEMETRY_ROWS for this device.
      */
     private persistTelemetry(deviceId: string, raw: Record<string, any>): void {
         this.supabase
@@ -198,7 +206,39 @@ export class TelemetryService {
             .then(({ error }) => {
                 if (error) {
                     console.error(`TelemetryService: DB insert failed for device ${deviceId}:`, error);
+                    return;
                 }
+                // Prune: keep only the newest MAX_TELEMETRY_ROWS rows for this device
+                this.pruneTelemetry(deviceId);
+            });
+    }
+
+    /**
+     * Delete oldest telemetry rows beyond the cap for a given device.
+     * Finds the recorded_at cutoff of the Nth newest row, then deletes
+     * everything older. Async, fire-and-forget.
+     */
+    private pruneTelemetry(deviceId: string): void {
+        this.supabase
+            .from('telemetry')
+            .select('recorded_at')
+            .eq('device_id', deviceId)
+            .order('recorded_at', { ascending: false })
+            .range(this.MAX_TELEMETRY_ROWS, this.MAX_TELEMETRY_ROWS)
+            .then(({ data, error }) => {
+                if (error || !data || data.length === 0) return; // Within cap or error
+
+                const cutoff = data[0].recorded_at;
+                this.supabase
+                    .from('telemetry')
+                    .delete()
+                    .eq('device_id', deviceId)
+                    .lt('recorded_at', cutoff)
+                    .then(({ error: delError }) => {
+                        if (delError) {
+                            console.error(`TelemetryService: Prune failed for device ${deviceId}:`, delError);
+                        }
+                    });
             });
     }
 }

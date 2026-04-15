@@ -25,10 +25,37 @@ export class TelemetryService {
     private routeHandler: ((deviceId: string, reported: Record<string, any>) => void) | null = null;
     private sseHandler: ((deviceId: string, payload: Record<string, any>) => void) | null = null;
 
+    /**
+     * Cached UUID of the single registered device.
+     * Loaded once at startup via init(). Used as fallback when the
+     * Arduino payload doesn't include a device_id field (MVP).
+     */
+    private mvpDeviceId: string | null = null;
+
     constructor() {
         const supabaseUrl = process.env.SUPABASE_URL || '';
         const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
         this.supabase = createClient(supabaseUrl, supabaseKey);
+    }
+
+    /**
+     * Load the MVP device ID from the database.
+     * Must be called once during server startup (after Supabase is verified)
+     * so the synchronous ingest() hot path can resolve anonymous payloads.
+     */
+    async init(): Promise<void> {
+        const { data, error } = await this.supabase
+            .from('devices')
+            .select('id')
+            .limit(1)
+            .single();
+
+        if (data && !error) {
+            this.mvpDeviceId = data.id;
+            console.log(`✅ TelemetryService: MVP device resolved to ${data.id}`);
+        } else {
+            console.warn('⚠️ TelemetryService: No registered device found. Anonymous telemetry will be dropped until a device is registered.');
+        }
     }
 
     /**
@@ -142,20 +169,18 @@ export class TelemetryService {
 
         // Fallback: extract from topic segments if structured as .../device_id/...
         const segments = topic.split('/');
-        // For "spedi/vehicle/status" — no device segment in MVP topic structure.
-        // In MVP with one device, we use a well-known placeholder.
-        // This will be replaced when topic structure includes device_id.
-        if (segments.length >= 3) {
-            // Check if there's a 4th segment that could be a device ID
-            if (segments.length >= 4) {
-                return segments[2]; // e.g. spedi/vehicle/{device_id}/status
-            }
+        if (segments.length >= 4) {
+            return segments[2]; // e.g. spedi/vehicle/{device_id}/status
         }
 
-        // MVP fallback: if only one device exists, we can use 'default'.
-        // Higher-level services should register the device mapping.
-        // For now, return a stable key so the shadow is consistent.
-        return 'default';
+        // MVP fallback: use the cached real device UUID loaded at startup.
+        // The Arduino doesn't include device_id in its payload yet,
+        // so we map anonymous telemetry to the single registered device.
+        if (this.mvpDeviceId) {
+            return this.mvpDeviceId;
+        }
+
+        return null;
     }
 
     /**

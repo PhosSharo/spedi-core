@@ -207,7 +207,10 @@ const start = async () => {
         await configService.load();
         fastify.log.info('Supabase connection verified and config loaded.');
 
-        // 2. Inject MqttService into DeviceService (avoids circular imports)
+        // 2. Resolve MVP device ID for anonymous telemetry mapping
+        await telemetryService.init();
+
+        // 3. Inject MqttService into DeviceService (avoids circular imports)
         deviceService.init(mqttService);
 
         // 3. Inject MQTT stop publisher into SessionService

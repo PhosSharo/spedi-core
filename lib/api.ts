@@ -8,14 +8,21 @@ import { getToken } from './auth-store';
  */
 function resolveApiUrl(): string {
     const defaultUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
+    let resolvedUrl = defaultUrl;
 
     if (typeof window !== 'undefined' && (defaultUrl.includes('127.0.0.1') || defaultUrl.includes('localhost'))) {
         const host = window.location.hostname;
         if (host !== '127.0.0.1' && host !== 'localhost') {
-            return defaultUrl.replace(/127\.0\.0\.1|localhost/, host);
+            resolvedUrl = defaultUrl.replace(/127\.0\.0\.1|localhost/, host);
         }
     }
-    return defaultUrl;
+    
+    if (typeof window !== 'undefined' && !(window as any)._apiUrlLogged) {
+        console.log(`[SPEDI] Using API URL: ${resolvedUrl}`);
+        (window as any)._apiUrlLogged = true;
+    }
+
+    return resolvedUrl;
 }
 
 /**

@@ -144,8 +144,8 @@ function InfraSection() {
                     <KVRow label="SSE Event Stream" value={`${apiUrl}/events?token=<JWT>`} />
                     <KVRow label="WebSocket Control" value={`${apiUrl.replace(/^http/, 'ws')}/control?token=<JWT>`} />
                     <div className="border-t border-border/50 mt-2 pt-2">
-                        <KVRow label="MQTT Public Proxy" value="metro.proxy.rlwy.net : 41220" />
-                        <KVRow label="MQTT Internal (Railway)" value="spedi-core.railway.internal : 1883" />
+                        <KVRow label="MQTT Public Proxy" value="ballast.proxy.rlwy.net : 29053" />
+                        <KVRow label="MQTT Internal (Railway)" value="spedi-mqtt.railway.internal : 1883" />
                     </div>
                 </div>
             </Subsection>
@@ -186,8 +186,8 @@ function ArduinoSection() {
                 </p>
                 <CodeBlock lang="cpp" title="Connection Setup (C++)">{`#include <PubSubClient.h>
 
-const char* mqtt_server = "metro.proxy.rlwy.net";
-const int   mqtt_port   = 41220;
+const char* mqtt_server = "ballast.proxy.rlwy.net";
+const int   mqtt_port   = 29053;
 const char* mqtt_user   = "device";
 const char* mqtt_pass   = "spedi2026";
 
